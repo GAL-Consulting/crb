@@ -27,7 +27,17 @@
     });
     gapiInited = true;
     maybeEnableButtons();
+ ////// agregado 2025 10 09 1747
+      loadSelectOptions();
   }
+////// agregado 2025 10 09 1747
+//function initClient() {
+//  gapi.client.init({
+//    apiKey: API_KEY,
+//    discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
+//  }).then(loadSelectOptions);
+//}
+// gapi.load('client', initClient);
 
   // -------------------
   // Inicializar Google Identity Services
