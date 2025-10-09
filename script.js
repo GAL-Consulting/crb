@@ -28,7 +28,8 @@
     gapiInited = true;
     maybeEnableButtons();
  ////// agregado 2025 10 09 1747
-      loadSelectOptions();
+  //    loadSelectOptions();
+ ////// quitado 2025 10 09 1804
   }
 ////// agregado 2025 10 09 1747
 //function initClient() {
@@ -73,6 +74,9 @@
       // Listar carpetas
       listarCarpetas();
       listarArchivos(FOLDER_ID);
+    /////////// 2025 10 09 1809 Agregado
+      loadSelectOptions();
+    /////////// 2025 10 09 1809
 
     };
     tokenClient.requestAccessToken({ prompt: 'consent' });
