@@ -27,18 +27,6 @@
     });
     gapiInited = true;
     maybeEnableButtons();
- ////// agregado 2025 10 09 1747
-  //    loadSelectOptions();
- ////// quitado 2025 10 09 1804
-  }
-////// agregado 2025 10 09 1747
-//function initClient() {
-//  gapi.client.init({
-//    apiKey: API_KEY,
-//    discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
-//  }).then(loadSelectOptions);
-//}
-// gapi.load('client', initClient);
 
   // -------------------
   // Inicializar Google Identity Services
@@ -60,11 +48,12 @@
 
   // -------------------
   // Login con Google
-  document.getElementById("login").onclick = () => {
+document.getElementById("login").onclick = () => {
     tokenClient.callback = async (resp) => {
       if (resp.error) { console.error(resp); return; }
-
-      gapi.client.setToken({ access_token: resp.access_token });
+        
+        //Guarda el token de acceso obtenido, para usarlo en las llamadas a la API.	Después de que el usuario autoriza el acceso.
+        gapi.client.setToken({ access_token: resp.access_token });
 
       // Ocultar botón de login y mostrar contenido
       document.getElementById("login").style.display = "none";
@@ -74,11 +63,10 @@
       // Listar carpetas
       listarCarpetas();
       listarArchivos(FOLDER_ID);
-    /////////// 2025 10 09 1809 Agregado
       loadSelectOptions();
-    /////////// 2025 10 09 1809
-
-    };
+        };
+    
+    // Inicia el proceso de login y solicita permisos.	Cuando el usuario hace clic en el botón.
     tokenClient.requestAccessToken({ prompt: 'consent' });
   };
 
