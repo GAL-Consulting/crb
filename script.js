@@ -6,6 +6,7 @@
     const ANTECEDENTES_ID = "1K-WgTeSJ4FlVmSlTqvS3ezVXulCkz8sX"; //"TU_ID_DE_ANTECEDENTES"; // Reemplazá con el ID real https://drive.google.com/drive/folders/1K-WgTeSJ4FlVmSlTqvS3ezVXulCkz8sX?usp=drive_link
 //    const SCOPES = "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets";
   const SCOPES = "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets";
+   const RANGE = 'Documentos!A1:Z';
 
   let tokenClient;
   let gapiInited = false;
@@ -67,6 +68,73 @@
     tokenClient.requestAccessToken({ prompt: 'consent' });
   };
 
+// === CARGAR VALORES ÚNICOS PARA LOS SELECT ===
+async function loadSelectOptions() {
+  try {
+    const res = await gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: RANGE
+    });
+
+    const rows = res.result.values;
+    if (!rows || rows.length < 2) return;
+
+    const headers = rows[0];
+    const data = rows.slice(1);
+
+    const idxProyecto = headers.indexOf('Proyecto');
+    const idxCategoria = headers.indexOf('Categoria');
+    const idxEmisor = headers.indexOf('EmisorReceptor');
+    const idxPropiedad = headers.indexOf('Propiedad');
+
+    const proyectos = [...new Set(data.map(r => r[idxProyecto]).filter(Boolean))];
+    const categorias = [...new Set(data.map(r => r[idxCategoria]).filter(Boolean))];
+    const emisores = [...new Set(data.map(r => r[idxEmisor]).filter(Boolean))];
+    const propiedades = [...new Set(data.map(r => r[idxPropiedad]).filter(Boolean))];
+
+    llenarSelect('proyecto', proyectos);
+    llenarSelect('categoria', categorias);
+    llenarSelect('emisor', emisores);
+    llenarSelect('propiedad', propiedades);
+
+  } catch (err) {
+    console.error('Error cargando datos:', err);
+    console.log('Error detallado:', JSON.stringify(err, null, 2));
+
+  }
+}
+
+function llenarSelect(id, opciones) {
+  const select = document.getElementById(id);
+  select.innerHTML = '<option value="">-- Seleccionar --</option>';
+
+  opciones.forEach(op => {
+    const opt = document.createElement('option');
+    opt.value = op;
+    opt.textContent = op;
+    select.appendChild(opt);
+  });
+
+  const nuevo = document.createElement('option');
+  nuevo.value = '__nuevo__';
+  nuevo.textContent = '➕ Agregar nuevo...';
+  select.appendChild(nuevo);
+
+  select.addEventListener('change', () => {
+    if (select.value === '__nuevo__') {
+      const valor = prompt('Ingrese un nuevo valor para ' + id);
+      if (valor) {
+        const opt = document.createElement('option');
+        opt.value = valor;
+        opt.textContent = valor;
+        select.insertBefore(opt, nuevo);
+        select.value = valor;
+      } else {
+        select.value = '';
+      }
+    }
+  });
+}
 
 
 
