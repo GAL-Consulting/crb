@@ -33,31 +33,84 @@
       overflow: hidden;
     }
 
-    .carpetas, .archivos {
-      flex: 1;
-      overflow-y: auto;
-      border-top: 1px solid #ddd;
-      padding: 5px;
-    }
+.carpetas, .archivos {
+  flex: 1;
+  overflow-y: auto;
+  background-color: #f9f9fb;
+  border-radius: 8px;
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+}
 
-    .carpetas {
-      border-bottom: 1px solid #999;
-    }
+/* Títulos */
+.carpetas h3, .archivos h3 {
+  margin-top: 0;
+  color: #2c3e50;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
+}
 
-    .carpetas ul, .archivos ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
+/* Listas */
+.carpetas ul, .archivos ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
 
-    .carpetas li, .archivos li {
-      padding: 5px;
-      cursor: pointer;
-    }
+/* Ítems */
+.carpetas li, .archivos li {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  margin: 3px 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  color: #333;
+  font-size: 0.95rem;
+}
 
-    .carpetas li:hover, .archivos li:hover {
-      background: #f0f0f0;
-    }
+/* Íconos (usando emojis, se puede cambiar por Font Awesome) */
+.carpetas li::before {
+  content: "📁";
+  margin-right: 8px;
+  font-size: 1.1rem;
+}
+.archivos li::before {
+  content: "📄";
+  margin-right: 8px;
+  font-size: 1.1rem;
+}
+
+/* Hover */
+.carpetas li:hover, .archivos li:hover {
+  background-color: #e9efff;
+  color: #1a73e8;
+  transform: translateX(3px);
+}
+
+/* Elemento seleccionado */
+.carpetas li.selected, .archivos li.selected {
+  background-color: #dce8ff;
+  color: #1a73e8;
+  font-weight: bold;
+  border-left: 4px solid #1a73e8;
+}
+
+/* Scrollbar sutil */
+.carpetas::-webkit-scrollbar,
+.archivos::-webkit-scrollbar {
+  width: 6px;
+}
+.carpetas::-webkit-scrollbar-thumb,
+.archivos::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
 
     /* Columna central */
     .col-center {
