@@ -244,6 +244,88 @@ function llenarSelect(id, opciones) {
         }
       });
     }
+// =======================Boton guardar 2========================
+document.getElementById("formRegistro").addEventListener("submit", async (e) => {
+  e.preventDefault(); // Evita que el formulario recargue la página
+
+  // ==============================
+  // 1. Obtener valores del formulario
+  // ==============================
+  const archivo = document.getElementById("archivoSeleccionado").value;
+  const fileId = document.getElementById("archivoSeleccionado").dataset.fileId || "";
+  const proyecto = document.getElementById("proyecto").value;
+  const categoria = document.getElementById("categoria").value;
+  const emisor = document.getElementById("emisor").value;
+  const propiedad = document.getElementById("propiedad").value;
+  const comentarios = document.getElementById("comentarios").value;
+
+  // ==============================
+  // 2. Validación básica
+  // ==============================
+  if (!archivo || !proyecto) {
+    alert("Seleccioná un archivo y completá el proyecto.");
+    return;
+  }
+
+  // ==============================
+  // 3. Preparar datos para Google Sheets
+  // ==============================
+  const valores = [
+    new Date().toISOString(), // Fecha de registro
+    archivo,                  // Nombre del archivo
+    fileId,                   // ID del archivo en Drive
+    proyecto,                 // Proyecto (antes 'asunto')
+    categoria,                // Categoría
+    emisor,                   // Emisor/Receptor
+    propiedad,                // Propiedad
+    comentarios               // Comentarios
+  ];
+
+  // ==============================
+  // 4. Guardar en Google Sheets
+  // ==============================
+  try {
+    await gapi.client.sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: "A:H", // Ahora tenemos 8 columnas (A a H)
+      valueInputOption: "RAW",
+      insertDataOption: "INSERT_ROWS",
+      resource: { values: [valores] }
+    });
+
+    // ==============================
+    // 5. Obtener o crear carpeta del proyecto
+    // ==============================
+    const carpetaDestinoId = await obtenerOCrearCarpetaAsunto(proyecto);
+
+    // ==============================
+    // 6. Mover el archivo
+    // ==============================
+    await moverArchivoA(fileId, carpetaDestinoId);
+
+    // ==============================
+    // 7. Confirmar y limpiar
+    // ==============================
+    alert("Registro guardado y archivo movido a la carpeta del proyecto.");
+
+    document.getElementById("archivoSeleccionado").value = "";
+    document.getElementById("proyecto").value = "";
+    document.getElementById("categoria").value = "";
+    document.getElementById("emisor").value = "";
+    document.getElementById("propiedad").value = "";
+    document.getElementById("comentarios").value = "";
+    document.getElementById("visor").src = "";
+
+  } catch (error) {
+    console.error("Error al guardar el registro:", error);
+    alert("Ocurrió un error al guardar el registro. Revisá la consola.");
+  }
+});
+
+
+
+   // ======================Boton guardar 1======================
+
 document.getElementById("guardar").addEventListener("click", async () => {
   const btnGuardar = document.getElementById("guardar");
   btnGuardar.disabled = true; // evita doble clic
@@ -258,6 +340,8 @@ document.getElementById("guardar").addEventListener("click", async () => {
     const asunto = document.getElementById("asunto").value.trim();
     const categoria = document.getElementById("categoria").value.trim();
     const comentarios = document.getElementById("comentarios").value.trim();
+
+    const proyecto = document.getElementById("proyecto").value.trim();  
 
     // ======================
     // 2️⃣ Validar datos mínimos
@@ -377,8 +461,9 @@ document.getElementById("guardar").addEventListener("click", async () => {
   document.getElementById("asunto").value = "";
   document.getElementById("categoria").value = "";
   document.getElementById("comentarios").value = "";
-  document.getElementById("asunto").value = "";
+  document.getElementById("proyecto").value = "";
   document.getElementById("visor").src = "";
+  
 });
 
 */
