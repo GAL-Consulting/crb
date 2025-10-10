@@ -27,7 +27,7 @@
     });
     gapiInited = true;
     maybeEnableButtons();
-
+  }/////////////////
   // -------------------
   // Inicializar Google Identity Services
   function gisLoaded() {
