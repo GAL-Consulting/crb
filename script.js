@@ -71,6 +71,7 @@ document.getElementById("login").onclick = () => {
   };
 
 // === CARGAR VALORES ÚNICOS PARA LOS SELECT ===
+// === CARGAR VALORES ÚNICOS PARA LOS SELECT ===
 async function loadSelectOptions() {
   try {
     const res = await gapi.client.sheets.spreadsheets.values.get({
@@ -89,11 +90,13 @@ async function loadSelectOptions() {
     const idxEmisor = headers.indexOf('EmisorReceptor');
     const idxPropiedad = headers.indexOf('Propiedad');
 
-    const proyectos = [...new Set(data.map(r => r[idxProyecto]).filter(Boolean))];
-    const categorias = [...new Set(data.map(r => r[idxCategoria]).filter(Boolean))];
-    const emisores = [...new Set(data.map(r => r[idxEmisor]).filter(Boolean))];
-    const propiedades = [...new Set(data.map(r => r[idxPropiedad]).filter(Boolean))];
+    // Obtener valores únicos y ordenarlos alfabéticamente
+    const proyectos = [...new Set(data.map(r => r[idxProyecto]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const categorias = [...new Set(data.map(r => r[idxCategoria]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const emisores = [...new Set(data.map(r => r[idxEmisor]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const propiedades = [...new Set(data.map(r => r[idxPropiedad]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
+    // Llenar los selects
     llenarSelect('proyecto', proyectos);
     llenarSelect('categoria', categorias);
     llenarSelect('emisor', emisores);
@@ -102,14 +105,15 @@ async function loadSelectOptions() {
   } catch (err) {
     console.error('Error cargando datos:', err);
     console.log('Error detallado:', JSON.stringify(err, null, 2));
-
   }
 }
 
+// === FUNCIÓN PARA LLENAR UN SELECT ===
 function llenarSelect(id, opciones) {
   const select = document.getElementById(id);
   select.innerHTML = '<option value="">-- Seleccionar --</option>';
 
+  // Insertar opciones ordenadas
   opciones.forEach(op => {
     const opt = document.createElement('option');
     opt.value = op;
@@ -117,11 +121,13 @@ function llenarSelect(id, opciones) {
     select.appendChild(opt);
   });
 
+  // Agregar opción para añadir un nuevo valor
   const nuevo = document.createElement('option');
   nuevo.value = '__nuevo__';
   nuevo.textContent = '➕ Agregar nuevo...';
   select.appendChild(nuevo);
 
+  // Permitir agregar nuevos valores manualmente
   select.addEventListener('change', () => {
     if (select.value === '__nuevo__') {
       const valor = prompt('Ingrese un nuevo valor para ' + id);
@@ -129,7 +135,25 @@ function llenarSelect(id, opciones) {
         const opt = document.createElement('option');
         opt.value = valor;
         opt.textContent = valor;
-        select.insertBefore(opt, nuevo);
+
+        // Insertar manteniendo el orden alfabético
+        const opcionesExistentes = Array.from(select.options)
+          .filter(o => o.value !== '__nuevo__' && o.value !== '')
+          .map(o => o.value)
+          .concat(valor)
+          .sort((a, b) => a.localeCompare(b));
+
+        select.innerHTML = '<option value="">-- Seleccionar --</option>';
+        opcionesExistentes.forEach(v => {
+          const o = document.createElement('option');
+          o.value = v;
+          o.textContent = v;
+          select.appendChild(o);
+        });
+
+        // Reagregar la opción “Agregar nuevo...”
+        select.appendChild(nuevo);
+
         select.value = valor;
       } else {
         select.value = '';
@@ -137,11 +161,6 @@ function llenarSelect(id, opciones) {
     }
   });
 }
-
-
-
-
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   function listarCarpetas(parentId = FOLDER_ID) {
