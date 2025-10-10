@@ -244,7 +244,94 @@ function llenarSelect(id, opciones) {
         }
       });
     }
+document.getElementById("guardar").addEventListener("click", async () => {
+  const btnGuardar = document.getElementById("guardar");
+  btnGuardar.disabled = true; // evita doble clic
 
+  try {
+    // ======================
+    // 1️⃣ Obtener valores del formulario
+    // ======================
+    const archivoElem = document.getElementById("archivoSeleccionado");
+    const archivo = archivoElem.value.trim();
+    const fileId = archivoElem.dataset.fileId || "";
+    const asunto = document.getElementById("asunto").value.trim();
+    const categoria = document.getElementById("categoria").value.trim();
+    const comentarios = document.getElementById("comentarios").value.trim();
+
+    // ======================
+    // 2️⃣ Validar datos mínimos
+    // ======================
+    if (!archivo || !asunto) {
+      alert("⚠️ Por favor, seleccioná un archivo y completá el asunto.");
+      return;
+    }
+
+    if (!fileId) {
+      alert("⚠️ El archivo seleccionado no tiene un ID válido. Intentá seleccionarlo de nuevo.");
+      return;
+    }
+
+    // ======================
+    // 3️⃣ Preparar datos para Sheets
+    // ======================
+    const valores = [
+      new Date().toISOString(), // Fecha/hora en formato ISO
+      archivo,
+      fileId,
+      asunto,
+      categoria,
+      comentarios,
+      asunto // ⚠️ revisá si querés duplicar este campo o reemplazarlo
+    ];
+
+    // ======================
+    // 4️⃣ Guardar registro en Google Sheets
+    // ======================
+    await gapi.client.sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: "A:G", // columnas destino
+      valueInputOption: "USER_ENTERED", // para que Sheets interprete fechas y números
+      insertDataOption: "INSERT_ROWS",
+      resource: { values: [valores] }
+    });
+
+    // ======================
+    // 5️⃣ Crear (o localizar) la carpeta del asunto en Drive
+    // ======================
+    const carpetaDestinoId = await obtenerOCrearCarpetaAsunto(asunto);
+
+    // ======================
+    // 6️⃣ Mover el archivo a la carpeta correspondiente
+    // ======================
+    await moverArchivoA(fileId, carpetaDestinoId);
+
+    // ======================
+    // 7️⃣ Confirmar al usuario
+    // ======================
+    alert("✅ Registro guardado correctamente y archivo movido a la carpeta del asunto.");
+
+    // ======================
+    // 8️⃣ Limpiar formulario
+    // ======================
+    archivoElem.value = "";
+    archivoElem.dataset.fileId = "";
+    document.getElementById("asunto").value = "";
+    document.getElementById("categoria").value = "";
+    document.getElementById("comentarios").value = "";
+    document.getElementById("visor").src = "";
+
+  } catch (err) {
+    console.error("❌ Error al guardar registro:", err);
+    alert("❌ Ocurrió un error al guardar el registro.\nDetalles: " + (err.message || err));
+  } finally {
+    // ======================
+    // 9️⃣ Reactivar botón
+    // ======================
+    btnGuardar.disabled = false;
+  }
+});
+/*
    document.getElementById("guardar").addEventListener("click", async () => {
   const archivo = document.getElementById("archivoSeleccionado").value;
   const fileId = document.getElementById("archivoSeleccionado").dataset.fileId || "";
@@ -294,7 +381,7 @@ function llenarSelect(id, opciones) {
   document.getElementById("visor").src = "";
 });
 
-
+*/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
