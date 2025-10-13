@@ -361,14 +361,18 @@ document.getElementById("guardar").addEventListener("click", async () => {
     const asunto = document.getElementById("asunto").value.trim();
     const categoria = document.getElementById("categoria").value.trim();
     const comentarios = document.getElementById("comentarios").value.trim();
+      const emisor = document.getElementById("emisor").value.trim();
+      const propiedad = document.getElementById("propiedad").value.trim();
 
-    const proyecto = document.getElementById("proyecto").value.trim();  
+    const proyecto = document.getElementById("proyecto").value.trim(); 
+
+
 
     // ======================
     // 2️⃣ Validar datos mínimos
     // ======================
-    if (!archivo || !asunto) {
-      alert("⚠️ Por favor, seleccioná un archivo y completá el asunto.");
+    if (!archivo || !proyecto) {
+      alert("⚠️ Por favor, seleccioná un archivo y asignà a un proyecto.");
       return;
     }
 
@@ -380,15 +384,17 @@ document.getElementById("guardar").addEventListener("click", async () => {
     // ======================
     // 3️⃣ Preparar datos para Sheets
     // ======================
-    const valores = [
-      new Date().toISOString(), // Fecha/hora en formato ISO
-      archivo,
-      fileId,
-      asunto,
-      categoria,
-      comentarios,
-      asunto // ⚠️ revisá si querés duplicar este campo o reemplazarlo
-    ];
+  const valores = [
+    new Date().toISOString(), // Fecha de registro
+    archivo,                  // Nombre del archivo
+    fileId,                   // ID del archivo en Drive
+    proyecto,                 // Proyecto (antes 'asunto')
+    categoria,                // Categoría
+    emisor,                   // Emisor/Receptor
+    propiedad,                // Propiedad
+    comentarios               // Comentarios
+      ];
+    
 
     // ======================
     // 4️⃣ Guardar registro en Google Sheets
@@ -414,15 +420,16 @@ document.getElementById("guardar").addEventListener("click", async () => {
     // ======================
     // 7️⃣ Confirmar al usuario
     // ======================
-    alert("✅ Registro guardado correctamente y archivo movido a la carpeta del asunto.");
+    alert("✅ Registro guardado correctamente y archivo movido a la carpeta del proyecto.");
 
     // ======================
     // 8️⃣ Limpiar formulario
     // ======================
-    archivoElem.value = "";
-    archivoElem.dataset.fileId = "";
-    document.getElementById("asunto").value = "";
+    document.getElementById("archivoSeleccionado").value = "";
+    document.getElementById("proyecto").value = "";
     document.getElementById("categoria").value = "";
+    document.getElementById("emisor").value = "";
+    document.getElementById("propiedad").value = "";
     document.getElementById("comentarios").value = "";
     document.getElementById("visor").src = "";
 
