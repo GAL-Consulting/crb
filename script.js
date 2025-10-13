@@ -219,11 +219,11 @@ function llenarSelect(id, opciones) {
             const li = document.createElement("li");
             li.textContent = f.name;
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-            li.onclick = () => {
-              document.getElementById("archivoSeleccionado").value = f.name;
-              document.getElementById("archivoSeleccionado").dataset.fileId = f.id;
-              document.getElementById("visor").src = "https://drive.google.com/file/d/" + f.id + "/preview";
-            };
+           // li.onclick = () => {
+           // document.getElementById("archivoSeleccionado").value = f.name;
+           // document.getElementById("archivoSeleccionado").dataset.fileId = f.id;
+           //   document.getElementById("visor").src = "https://drive.google.com/file/d/" + f.id + "/preview";
+           // };
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////
        li.onclick = () => {
   const visor = document.getElementById("visor");
@@ -235,6 +235,7 @@ function llenarSelect(id, opciones) {
 
   document.getElementById("archivoSeleccionado").value = f.name;
   document.getElementById("archivoSeleccionado").dataset.fileId = f.id;
+  document.getElementById("visor").src = "https://drive.google.com/file/d/" + f.id + "/preview";
 
   const tiposVisibles = [
     "application/pdf",
