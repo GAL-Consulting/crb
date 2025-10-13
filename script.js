@@ -205,7 +205,7 @@ function llenarSelect(id, opciones) {
       gapi.client.drive.files.list({
       //  q: `'${carpetaId}' in parents and mimeType='application/pdf' and trashed=false`,
       //  q: `'${carpetaId}' in parents and trashed=false`,
-        q: `'${carpetaId}' in parents and mimeType!='application/vnd.google-apps.folder' and trashed=false`
+        q: `'${carpetaId}' in parents and mimeType!='application/vnd.google-apps.folder' and trashed=false`,
 
        // fields: "files(id, name, webViewLink)",
         fields: "files(id, name, mimeType, webViewLink, webContentLink)",
