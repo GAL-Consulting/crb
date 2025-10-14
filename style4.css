@@ -32,7 +32,7 @@
       grid-gap: 10px;
       padding: 10px;
       box-sizing: border-box;
-      height: calc(100vh - 60px); /* menos header */
+      min-height: calc(100vh - 60px); /* menos header */
     }
 
     /* Columna izquierda */
@@ -41,7 +41,7 @@
       flex-direction: column;
       border: 1px solid #ccc;
       overflow-y: auto;  /* ✅ antes era hidden */
-      min-height: 170vh; 
+      min-height: 150px; 
       border: none;
       }
 
