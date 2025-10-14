@@ -72,6 +72,12 @@
   padding: 0;
 }
 
+.carpetas select,
+.archivos select {
+  display: none;
+}
+
+
 /* Ítems */
 .carpetas li, .archivos li {
   display: flex;
