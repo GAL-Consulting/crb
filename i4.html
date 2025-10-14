@@ -33,65 +33,62 @@
       </div>
     </div>
   </nav>
-
-  <!-- Contenido principal (oculto hasta login) -->
   <main>
-  <!-- ===== NAVBAR ===== -->
- 
-    <!-- Columna izquierda -->
-    <div class="col-left">
+  <!-- Columna izquierda -->
+  <div class="col-left">
     <div class="carpetas">
-  <h3>Carpetas</h3>
-  <ul id="listaCarpetas"></ul>
-  <select id="selectCarpetas" style="display:none;"></select>
-</div>
-
-<div class="archivos">
-  <h3>Archivos</h3>
-  <div id="carpetaSeleccionada"></div>
-  <ul id="listaDocs"></ul>
-  <select id="selectArchivos" style="display:none;"></select>
-</div>
-
-    <!-- Columna central -->
-    <div class="col-center">
-     <iframe 
-     width="100%"
-  height="600px"
-  style="border:none;"
-  id="visor"></iframe>
+      <h3>Carpetas</h3>
+      <ul id="listaCarpetas"></ul>
+      <select id="selectCarpetas" style="display:none;"></select>
     </div>
 
-    <!-- Columna derecha -->
-    <div class="col-right">
-       <form id="formRegistro">
-       
-       <h5>Archivo Id<span id="archivoSeleccionado">#1234567891011121314</span></h5>
+    <div class="archivos">
+      <h3>Archivos</h3>
+      <div id="carpetaSeleccionada"></div>
+      <ul id="listaDocs"></ul>
+      <select id="selectArchivos" style="display:none;"></select>
+    </div>
+  </div>
 
-        <label for="proyecto">Proyecto:</label>
-        <select id="proyecto"></select>
+  <!-- Columna central -->
+  <div class="col-center">
+    <iframe id="visor" width="100%" height="600px" style="border:none;"></iframe>
+  </div>
 
-        <label for="categoria">Categoría:</label>
-        <select id="categoria"></select>
+  <!-- Columna derecha -->
+  <div class="col-right">
+    <form id="formRegistro">
+      <h5>Archivo Id <span id="archivoSeleccionado">#1234567891011121314</span></h5>
 
-        <label for="emisor">Emisor/Receptor:</label>
-        <select id="emisor"></select>
+      <label for="proyecto">Proyecto:</label>
+      <select id="proyecto"></select>
 
-        <label for="propiedad">Propiedad:</label>
-        <select id="propiedad"></select>
-        
-         <label>Descripciòn:</label>
+      <label for="categoria">Categoría:</label>
+      <select id="categoria"></select>
+
+      <label for="emisor">Emisor/Receptor:</label>
+      <select id="emisor"></select>
+
+      <label for="propiedad">Propiedad:</label>
+      <select id="propiedad"></select>
+
+      <label>Descripción:</label>
       <textarea id="comentarios"></textarea>
 
-       <label for="asunto">Asunto:</label>
-        <input id="asunto"></select>
+      <label for="asunto">Asunto:</label>
+      <!-- ❌ Cerraba mal con </select> -->
+      <input id="asunto" />
 
-        <button type="submit" class="btn">Guardar registro</button>
-          <button id="guardar">Guardar Registro</button>
-      </form>
-          
-    </div>
-  </main>
+      <button type="submit" class="btn">Guardar registro</button>
+      <button id="guardar">Guardar Registro</button>
+    </form>
+  </div>
+</main>
+
+  
+  
+  
+
   </div>
   <!-- Librería Google API -->
   <script src="https://apis.google.com/js/api.js"></script>
