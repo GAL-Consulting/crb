@@ -1,207 +1,137 @@
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    h1 {
-      text-align: center;
-      margin: 0;
-      padding: 10px;
-      background: #2c3e50;
-      color: white;
-    }
-
- /* para forzar que #app y main se expandan bien en altura */
-
-    #app {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-
-
-    /* Layout principal en grid */
-    main {
-      flex: 1;
-      display: grid;
-      grid-template-columns: 25% 50% 25%;
-      grid-gap: 10px;
-      padding: 10px;
-      box-sizing: border-box;
-      min-height: calc(100vh - 60px); /* menos header */
-    }
-
-    /* Columna izquierda */
-    .col-left {
-      display: flex;
-      flex-direction: column;
-      border: 1px solid #ccc;
-      overflow-y: auto;  /* ✅ antes era hidden */
-      min-height: 150px; 
-      border: none;
-      }
-
-.carpetas, .archivos {
-  flex: 1;
-  overflow-y: auto;
-  border: none;
-  background-color: #f9f9fb;
-  border-radius: 8px;
-  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.1);
-  padding: 10px;
-}
-
-/* Títulos */
-.carpetas h3, .archivos h3 {
-  margin-top: 0;
-  color: #2c3e50;
-  font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 5px;
-}
-
-/* Listas */
-.carpetas ul, .archivos ul {
-  list-style: none;
+/* ============================
+   ESTILOS BASE GENERALES
+   ============================ */
+html, body {
   margin: 0;
   padding: 0;
+  height: 100%;
+  font-family: "Segoe UI", Roboto, sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
 }
 
+header {
+  background-color: #2b3a67;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+main {
+  display: grid;
+  grid-template-columns: 25% 50% 25%;
+  grid-gap: 10px;
+  padding: 10px;
+  box-sizing: border-box;
+  min-height: calc(100vh - 60px); /* permite crecer si hay más contenido */
+}
+
+/* ============================
+   COLUMNAS
+   ============================ */
+.col-left,
+.col-center,
+.col-right {
+  background-color: white;
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+}
+
+/* COLUMNA IZQUIERDA: carpetas + archivos */
+.col-left {
+  display: flex;
+  flex-direction: column;
+  border: none;
+  overflow-y: auto; /* antes era hidden */
+  min-height: 100px;
+}
+
+/* ============================
+   SECCIONES DE LISTAS Y SELECTS
+   ============================ */
+.carpetas ul,
+.archivos ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.carpetas ul li,
+.archivos ul li {
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.carpetas ul li:hover,
+.archivos ul li:hover {
+  background-color: #e8e8e8;
+}
+
+/* Los selects se ocultan por defecto */
 .carpetas select,
 .archivos select {
   display: none;
 }
 
-
-/* Ítems */
-.carpetas li, .archivos li {
+/* ============================
+   VISOR CENTRAL (iframe)
+   ============================ */
+.col-center {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 8px 10px;
-  margin: 3px 0;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  color: #333;
-  font-size: 0.95rem;
+  justify-content: flex-start;
+  background-color: #eaeaea;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
 }
 
-/* Íconos (usando emojis, se puede cambiar por Font Awesome) */
-.carpetas li::before {
-  content: "📁";
-  margin-right: 8px;
-  font-size: 1.1rem;
-}
-.archivos li::before {
-  content: "📄";
-  margin-right: 8px;
-  font-size: 1.1rem;
-}
-
-/* Hover */
-.carpetas li:hover, .archivos li:hover {
-  background-color: #e9efff;
-  color: #1a73e8;
-  transform: translateX(3px);
+.viewer-container {
+  position: relative;
+  background: white;
+  width: 100%;
+  height: 80vh;
+  max-width: 800px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Elemento seleccionado */
-.carpetas li.selected, .archivos li.selected {
-  background-color: #dce8ff;
-  color: #1a73e8;
-  font-weight: bold;
-  border-left: 4px solid #1a73e8;
+.viewer-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
 }
 
-/* Scrollbar sutil */
-.carpetas::-webkit-scrollbar,
-.archivos::-webkit-scrollbar {
-  width: 6px;
-}
-.carpetas::-webkit-scrollbar-thumb,
-.archivos::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
+/* ============================
+   COLUMNA DERECHA (información adicional)
+   ============================ */
+.col-right {
+  overflow-y: auto;
 }
 
-
-    /* Columna central */
-    .col-center {
-      border: 1px solid #ccc;
-      overflow: auto;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border: none;
-        min-height: 70vh;
-    }
-
-    .col-center iframe {
-      width: 100%;
-      height: 100%;
-      
-      border-radius: 8px;
-      
-     background-color: #f9f9fb;
-     box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.1);
-    }
-    
-
-    /* Columna derecha */
-    .col-right {
-      border: none;/*1px solid #ccc;*/
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      
-       border-radius: 8px;      
-     background-color: #f9f9fb;
-     box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.1);
-    }
-
-    label {
-      font-weight: bold;
-    }
-
-    input, textarea, select, button {
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 5px;
-      box-sizing: border-box;
-    }
-
-    button {
-      background: #2c3e50;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #34495e;
-    }
-
-/* Responsive: en pantallas pequeñas, se apila y se muestran selects */
+/* ============================
+   RESPONSIVE (móviles y tablets)
+   ============================ */
 @media (max-width: 768px) {
 
-  /* El layout pasa de 3 columnas a 1 */
+  /* apilar las columnas */
   main {
     grid-template-columns: 1fr;
   }
 
-  /* Ocultar las listas de carpetas y archivos */
+  /* ocultar las listas y mostrar selects */
   .carpetas ul,
   .archivos ul {
     display: none;
   }
 
-  /* Mostrar los selects en su lugar */
   .carpetas select,
   .archivos select {
     display: block;
@@ -211,5 +141,10 @@
     border-radius: 6px;
     border: 1px solid #ccc;
     background: #fff;
+  }
+
+  /* ajustar visor */
+  .viewer-container {
+    height: 70vh;
   }
 }
