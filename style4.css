@@ -41,7 +41,7 @@
       flex-direction: column;
       border: 1px solid #ccc;
       overflow-y: auto;  /* ✅ antes era hidden */
-      min-height: 70vh; 
+      min-height: 170vh; 
       border: none;
       }
 
