@@ -42,6 +42,7 @@
       border: 1px solid #ccc;
       overflow: hidden;
       border: none;
+          min-height: 150vh;
     }
 
 .carpetas, .archivos {
