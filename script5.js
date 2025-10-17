@@ -212,13 +212,13 @@ function llenarSelect(id, opciones) {
     });
 
     // Mostrar el elemento correcto según ancho
-    if (window.innerWidth < 768) {
+  /*  if (window.innerWidth < 768) {
       lista.style.display = "none";
       select.style.display = "block";
     } else {
       lista.style.display = "block";
       select.style.display = "none";
-    }
+    } */
 
     // Evento del select
     select.onchange = () => {
@@ -267,14 +267,14 @@ function llenarSelect(id, opciones) {
       select.appendChild(opt);
     }
 
-    // Mostrar el elemento correcto según ancho
+  /*  // Mostrar el elemento correcto según ancho
     if (window.innerWidth < 768) {
       lista.style.display = "none";
       select.style.display = "block";
     } else {
       lista.style.display = "block";
       select.style.display = "none";
-    }
+    }*/
 
     select.onchange = () => {
       const file = files.find(f => f.id === select.value);
