@@ -1,0 +1,215 @@
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 0;
+      padding: 10px;
+      background: #2c3e50;
+      color: white;
+    }
+
+ /* para forzar que #app y main se expandan bien en altura */
+
+    #app {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+
+    /* Layout principal en grid */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 25% 50% 25%;
+      grid-gap: 10px;
+      padding: 10px;
+      box-sizing: border-box;
+      min-height: calc(100vh - 60px); /* menos header */
+    }
+
+    /* Columna izquierda */
+    .col-left {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #ccc;
+      overflow-y: auto;  /* ✅ antes era hidden */
+      min-height: 150px; 
+      border: none;
+      }
+
+.carpetas, .archivos {
+  flex: 1;
+  overflow-y: auto;
+  border: none;
+  background-color: #f9f9fb;
+  border-radius: 8px;
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+}
+
+/* Títulos */
+.carpetas h3, .archivos h3 {
+  margin-top: 0;
+  color: #2c3e50;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
+}
+
+/* Listas */
+.carpetas ul, .archivos ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.carpetas select,
+.archivos select {
+  display: none;
+}
+
+
+/* Ítems */
+.carpetas li, .archivos li {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  margin: 3px 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+/* Íconos (usando emojis, se puede cambiar por Font Awesome) */
+.carpetas li::before {
+  content: "📁";
+  margin-right: 8px;
+  font-size: 1.1rem;
+}
+.archivos li::before {
+  content: "📄";
+  margin-right: 8px;
+  font-size: 1.1rem;
+}
+
+/* Hover */
+.carpetas li:hover, .archivos li:hover {
+  background-color: #e9efff;
+  color: #1a73e8;
+  transform: translateX(3px);
+}
+
+/* Elemento seleccionado */
+.carpetas li.selected, .archivos li.selected {
+  background-color: #dce8ff;
+  color: #1a73e8;
+  font-weight: bold;
+  border-left: 4px solid #1a73e8;
+}
+
+/* Scrollbar sutil */
+.carpetas::-webkit-scrollbar,
+.archivos::-webkit-scrollbar {
+  width: 6px;
+}
+.carpetas::-webkit-scrollbar-thumb,
+.archivos::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+
+    /* Columna central */
+    .col-center {
+      border: 1px solid #ccc;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: none;
+        min-height: 70vh;
+    }
+
+    .col-center iframe {
+      width: 100%;
+      height: 100%;
+      
+      border-radius: 8px;
+      
+     background-color: #f9f9fb;
+     box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.1);
+    }
+    
+
+    /* Columna derecha */
+    .col-right {
+      border: none;/*1px solid #ccc;*/
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      
+       border-radius: 8px;      
+     background-color: #f9f9fb;
+     box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+      font-weight: bold;
+    }
+
+    input, textarea, select, button {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 5px;
+      box-sizing: border-box;
+    }
+
+    button {
+      background: #2c3e50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #34495e;
+    }
+
+/* Responsive: en pantallas pequeñas, se apila y se muestran selects */
+@media (max-width: 768px) {
+
+  /* El layout pasa de 3 columnas a 1 */
+  main {
+    grid-template-columns: 1fr;
+  }
+
+  /* Ocultar las listas de carpetas y archivos */
+  .carpetas ul,
+  .archivos ul {
+    display: none;
+  }
+
+  /* Mostrar los selects en su lugar */
+  .carpetas select,
+  .archivos select {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background: #fff;
+  }
+}
