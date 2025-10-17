@@ -182,6 +182,7 @@ function llenarSelect(id, opciones) {
       volverLi.textContent = "⬅️ Volver a raíz";
       volverLi.onclick = () => {
         document.getElementById("carpetaSeleccionada").textContent = "Raíz";
+          probarAcceso();
         listarCarpetas(FOLDER_ID);
         listarArchivos(FOLDER_ID);
       };
@@ -280,6 +281,20 @@ function llenarSelect(id, opciones) {
       if (file) mostrarArchivo(file);
     };
   });
+}
+
+
+
+      async function probarAcceso() {
+  try {
+    const res = await gapi.client.drive.files.get({
+      fileId: FOLDER_ID,
+      fields: "id, name, mimeType"
+    });
+    console.log("✅ Acceso a carpeta raíz correcto:", res.result);
+  } catch (err) {
+    console.error("❌ Error accediendo a carpeta raíz:", err);
+  }
 }
 
 
