@@ -110,6 +110,8 @@
     // Si tu HTML está alojado en GitHub Pages: intenta inferir owner/repo automáticamente.
     let GITHUB_OWNER = null;
     let GITHUB_REPO = null;
+    // Añadir arriba en el script (variable global para gestionar object URLs)
+    let lastObjectUrl = null;
 
     // ---------- UTIL ---------- 
     function qs(id){ return document.getElementById(id); }
@@ -283,52 +285,103 @@
     }
 
     // mostrar archivo en visor
-    async function mostrarArchivo(f) {
-      // f contiene name, path, download_url, type
-      const visor = qs('visor');
-      visor.removeAttribute('src');
-      visor.removeAttribute('srcdoc');
 
-      // actualizamos la UI (archivo seleccionado)
-      qs('archivoSeleccionado').textContent = f.name;
-      qs('archivoSeleccionado').dataset.filePath = f.path || '';
-      qs('archivoSeleccionado').dataset.downloadUrl = f.download_url || '';
 
-      const tipo = (f.name.split('.').pop() || '').toLowerCase();
-      const tiposVisibles = ['pdf','jpg','jpeg','png','gif','svg','txt','md'];
+// Reemplaza la función mostrarArchivo existente por esta:
+async function mostrarArchivo(f) {
+  const visor = document.getElementById("visor");
 
-      if (!f.download_url) {
-        visor.srcdoc = `<div style="padding:20px; text-align:center;">No se encontró URL de descarga para este archivo.</div>`;
-        return;
-      }
+  // Revocamos object URL anterior si existía
+  if (lastObjectUrl) {
+    try { URL.revokeObjectURL(lastObjectUrl); } catch(e){ /* ignore */ }
+    lastObjectUrl = null;
+  }
 
-      if (['pdf'].includes(tipo)) {
-        // los navegadores suelen renderizar PDFs desde la URL cruda
-        visor.src = f.download_url;
-      } else if (['jpg','jpeg','png','gif','svg'].includes(tipo)) {
-        // mostramos imagen dentro del iframe con un simple HTML
-        visor.srcdoc = `<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:12px;"><img src="${f.download_url}" style="max-width:100%;max-height:100%;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.12)"></div>`;
-      } else if (['txt','md','csv','json','js','css','html'].includes(tipo)) {
-        // mostrar texto simple en el iframe (para md/txt/..)
-        try {
-          const txt = await fetch(f.download_url).then(r => r.text());
-          // escapamos contenido mínimo para evitar interpretaciones
-          const esc = (s) => s.replaceAll('<','&lt;').replaceAll('>','&gt;');
-          visor.srcdoc = `<div style="padding:12px; font-family:monospace; white-space:pre-wrap; overflow:auto; height:100%;">${esc(txt)}</div>`;
-        } catch (e) {
-          visor.srcdoc = `<div style="text-align:center;padding:20px;">No se pudo recuperar el contenido para vista previa.</div>`;
-        }
+  // limpiamos src/srcdoc actuales
+  visor.removeAttribute('src');
+  visor.removeAttribute('srcdoc');
+
+  // Actualizamos UI (archivo seleccionado)
+  qs('archivoSeleccionado').textContent = f.name;
+  qs('archivoSeleccionado').dataset.filePath = f.path || '';
+  qs('archivoSeleccionado').dataset.downloadUrl = f.download_url || '';
+
+  // Tipo por extensión (no es perfecto, pero útil)
+  const ext = (f.name.split('.').pop() || '').toLowerCase();
+  const tiposPdf = ['pdf'];
+  const tiposImagen = ['jpg','jpeg','png','gif','svg','webp'];
+  const tiposTexto = ['txt','md','csv','json','js','css','html','htm'];
+
+  // Si no hay download_url, usamos enlace bruto (no siempre disponible)
+  if (!f.download_url) {
+    visor.srcdoc = `<div style="padding:20px;text-align:center;">No se encontró URL de descarga para este archivo.</div>`;
+    return;
+  }
+
+  try {
+    // Para PDF e imágenes haremos fetch del blob y crearemos una object URL
+    if (tiposPdf.includes(ext) || tiposImagen.includes(ext)) {
+      const resp = await fetch(f.download_url);
+      if (!resp.ok) throw new Error('Error al descargar archivo: ' + resp.status);
+
+      const blob = await resp.blob();
+      const mime = blob.type || (tiposPdf.includes(ext) ? 'application/pdf' : 'application/octet-stream');
+
+      // Si es PDF, cargamos el blob directamente en el iframe
+      const objectUrl = URL.createObjectURL(new Blob([blob], { type: mime }));
+      lastObjectUrl = objectUrl;
+
+      if (tiposPdf.includes(ext)) {
+        // Los PDFs suelen visualizarse bien desde object URL
+        visor.src = objectUrl;
       } else {
-        // tipo no soportado para preview: mostramos enlace de descarga
+        // Para imágenes incrustamos un HTML simple que use la objectURL (mejora la adaptabilidad del tamaño)
         visor.srcdoc = `
-          <div style="text-align:center;padding:20px;font-family:sans-serif">
-            <p><strong>No se puede visualizar este tipo de archivo aquí.</strong></p>
-            <p>Nombre: ${f.name}</p>
-            <a href="${f.download_url}" target="_blank" style="font-weight:bold;color:#2c3e50;">Descargar / Abrir en nueva pestaña</a>
-          </div>
+          <!doctype html>
+          <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+          <body style="margin:0;display:flex;align-items:center;justify-content:center;height:100%;background:#fff;">
+            <img src="${objectUrl}" style="max-width:100%;max-height:100%;border-radius:6px;"/>
+          </body></html>
         `;
       }
+
+      return;
     }
+
+    // Para archivos de texto, preferimos renderizarlos como texto (evita descargar por headers)
+    if (tiposTexto.includes(ext)) {
+      const resp = await fetch(f.download_url);
+      if (!resp.ok) throw new Error('Error al descargar archivo: ' + resp.status);
+      const txt = await resp.text();
+      const esc = s => s.replaceAll('<','&lt;').replaceAll('>','&gt;');
+      visor.srcdoc = `<div style="padding:12px; font-family:monospace; white-space:pre-wrap; overflow:auto; height:100%;">${esc(txt)}</div>`;
+      return;
+    }
+
+    // Para otros tipos: intentamos fetch y crear object URL; si el navegador no sabe mostrarlo, quedará enlace de descarga
+    const resp = await fetch(f.download_url);
+    if (!resp.ok) throw new Error('Error al descargar archivo: ' + resp.status);
+    const blob = await resp.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    lastObjectUrl = objectUrl;
+
+    // Intentamos mostrarlo en iframe; si el navegador no lo puede renderizar, el usuario verá el mensaje con link
+    visor.src = objectUrl;
+
+    // (Si el navegador no lo muestra, el usuario podrá abrir la object URL en nueva pestaña o usar el enlace de abajo)
+  } catch (err) {
+    console.error('mostrarArchivo - fallback:', err);
+    // Fallback: mostrar una tarjeta con enlace de descarga pública (download_url)
+    visor.srcdoc = `
+      <div style="padding:20px; text-align:center; font-family:sans-serif;">
+        <p><strong>No se pudo mostrar la vista previa.</strong></p>
+        <p>Nombre: ${f.name}</p>
+        <p>Error: ${err.message || err}</p>
+        <a href="${f.download_url}" target="_blank" style="color:#2c3e50; font-weight:bold;">Abrir/Descargar archivo en nueva pestaña</a>
+      </div>
+    `;
+  }
+}
 
     // ---------- FORMULARIO: guardado local como CSV ----------
     function csvEscape(v) {
