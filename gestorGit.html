@@ -288,6 +288,10 @@
 
 
 // Reemplaza la función mostrarArchivo existente por esta:
+// VARIABLE GLOBAL (poner al comienzo del <script>)
+let lastObjectUrl = null;
+
+// Reemplazar mostrarArchivo existente por esta versión:
 async function mostrarArchivo(f) {
   const visor = document.getElementById("visor");
 
@@ -306,36 +310,58 @@ async function mostrarArchivo(f) {
   qs('archivoSeleccionado').dataset.filePath = f.path || '';
   qs('archivoSeleccionado').dataset.downloadUrl = f.download_url || '';
 
-  // Tipo por extensión (no es perfecto, pero útil)
+  // Extensión
   const ext = (f.name.split('.').pop() || '').toLowerCase();
-  const tiposPdf = ['pdf'];
-  const tiposImagen = ['jpg','jpeg','png','gif','svg','webp'];
-  const tiposTexto = ['txt','md','csv','json','js','css','html','htm'];
 
-  // Si no hay download_url, usamos enlace bruto (no siempre disponible)
+  // Mapeo de extensiones a MIME (completo y útil cuando el blob viene sin tipo)
+  const mimeMap = {
+    'pdf': 'application/pdf',
+    'txt': 'text/plain',
+    'md': 'text/markdown',
+    'csv': 'text/csv',
+    'json': 'application/json',
+    'js': 'application/javascript',
+    'css': 'text/css',
+    'html': 'text/html',
+    'htm': 'text/html',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'svg': 'image/svg+xml',
+    'webp': 'image/webp',
+    'bmp': 'image/bmp',
+    'xml': 'application/xml'
+  };
+
+  const tiposPdf = ['pdf'];
+  const tiposImagen = ['jpg','jpeg','png','gif','svg','webp','bmp'];
+  const tiposTexto = ['txt','md','csv','json','js','css','html','htm','xml'];
+
   if (!f.download_url) {
     visor.srcdoc = `<div style="padding:20px;text-align:center;">No se encontró URL de descarga para este archivo.</div>`;
     return;
   }
 
   try {
-    // Para PDF e imágenes haremos fetch del blob y crearemos una object URL
+    // Para PDFs e imágenes hacemos fetch y creamos object URL con MIME correcto
     if (tiposPdf.includes(ext) || tiposImagen.includes(ext)) {
       const resp = await fetch(f.download_url);
       if (!resp.ok) throw new Error('Error al descargar archivo: ' + resp.status);
 
       const blob = await resp.blob();
-      const mime = blob.type || (tiposPdf.includes(ext) ? 'application/pdf' : 'application/octet-stream');
+      // Si el blob no tiene tipo, usamos el mapeo por extensión
+      const mimeForExt = mimeMap[ext] || (blob.type || 'application/octet-stream');
+      const normalizedBlob = blob.type === mimeForExt ? blob : new Blob([blob], { type: mimeForExt });
 
-      // Si es PDF, cargamos el blob directamente en el iframe
-      const objectUrl = URL.createObjectURL(new Blob([blob], { type: mime }));
+      const objectUrl = URL.createObjectURL(normalizedBlob);
       lastObjectUrl = objectUrl;
 
       if (tiposPdf.includes(ext)) {
-        // Los PDFs suelen visualizarse bien desde object URL
+        // PDF: cargar object URL directamente en iframe
         visor.src = objectUrl;
       } else {
-        // Para imágenes incrustamos un HTML simple que use la objectURL (mejora la adaptabilidad del tamaño)
+        // Imagen: incrustar HTML que muestre la imagen (siempre evita que el servidor fuerce descarga)
         visor.srcdoc = `
           <!doctype html>
           <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -344,11 +370,10 @@ async function mostrarArchivo(f) {
           </body></html>
         `;
       }
-
       return;
     }
 
-    // Para archivos de texto, preferimos renderizarlos como texto (evita descargar por headers)
+    // Archivos de texto (los mostramos como texto para evitar problemas de headers)
     if (tiposTexto.includes(ext)) {
       const resp = await fetch(f.download_url);
       if (!resp.ok) throw new Error('Error al descargar archivo: ' + resp.status);
@@ -358,26 +383,29 @@ async function mostrarArchivo(f) {
       return;
     }
 
-    // Para otros tipos: intentamos fetch y crear object URL; si el navegador no sabe mostrarlo, quedará enlace de descarga
-    const resp = await fetch(f.download_url);
-    if (!resp.ok) throw new Error('Error al descargar archivo: ' + resp.status);
-    const blob = await resp.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    lastObjectUrl = objectUrl;
+    // Otros tipos: intentamos fetch y crear object URL con MIME mapeado si es posible
+    const respOther = await fetch(f.download_url);
+    if (!respOther.ok) throw new Error('Error al descargar archivo: ' + respOther.status);
+    const blobOther = await respOther.blob();
+    const mimeForExtOther = mimeMap[ext] || (blobOther.type || 'application/octet-stream');
+    const normalizedBlobOther = blobOther.type === mimeForExtOther ? blobOther : new Blob([blobOther], { type: mimeForExtOther });
 
-    // Intentamos mostrarlo en iframe; si el navegador no lo puede renderizar, el usuario verá el mensaje con link
-    visor.src = objectUrl;
+    const objectUrlOther = URL.createObjectURL(normalizedBlobOther);
+    lastObjectUrl = objectUrlOther;
 
-    // (Si el navegador no lo muestra, el usuario podrá abrir la object URL en nueva pestaña o usar el enlace de abajo)
+    // Intentamos mostrarlo en iframe; si el navegador no lo renderiza, el usuario podrá abrir el object URL
+    visor.src = objectUrlOther;
+
   } catch (err) {
     console.error('mostrarArchivo - fallback:', err);
-    // Fallback: mostrar una tarjeta con enlace de descarga pública (download_url)
+    // Fallback: tarjeta con enlace para abrir en nueva pestaña (download_url original)
+    const link = f.download_url ? `<a href="${f.download_url}" target="_blank" style="font-weight:bold;color:#2c3e50;">Abrir/Descargar archivo en nueva pestaña</a>` : '';
     visor.srcdoc = `
       <div style="padding:20px; text-align:center; font-family:sans-serif;">
         <p><strong>No se pudo mostrar la vista previa.</strong></p>
         <p>Nombre: ${f.name}</p>
         <p>Error: ${err.message || err}</p>
-        <a href="${f.download_url}" target="_blank" style="color:#2c3e50; font-weight:bold;">Abrir/Descargar archivo en nueva pestaña</a>
+        ${link}
       </div>
     `;
   }
