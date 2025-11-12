@@ -179,114 +179,140 @@
     }
 
     /* NAV / LISTING */
-    async function listarCarpetas(parentPath = INBOX_PATH) {
-      try {
-        const res = await fetch(apiUrlFor(parentPath));
-        if (!res.ok) throw new Error('Error al consultar GitHub: ' + res.status + ' ' + res.statusText);
-        const items = await res.json();
-        const carpetas = (items || []).filter(i => i.type === 'dir').sort((a,b)=>a.name.localeCompare(b.name));
-        const lista = qs('listaCarpetas');
-        const select = qs('selectCarpetas');
-        lista.innerHTML = '';
-        select.innerHTML = '';
+// Reemplaza por esta versión
+async function listarCarpetas(parentPath = INBOX_PATH) {
+  try {
+    const res = await fetch(apiUrlFor(parentPath));
+    if (!res.ok) throw new Error('Error al consultar GitHub: ' + res.status + ' ' + res.statusText);
+    const items = await res.json();
+    const carpetas = (items || []).filter(i => i.type === 'dir').sort((a,b)=>a.name.localeCompare(b.name));
+    const lista = qs('listaCarpetas');
+    const select = qs('selectCarpetas');
+    lista.innerHTML = '';
+    select.innerHTML = '';
 
-        if (parentPath !== INBOX_PATH) {
-          const volverLi = document.createElement('li');
-          volverLi.textContent = '⬅️ Volver a INBOX';
-          volverLi.onclick = () => { qs('carpetaSeleccionada').textContent = INBOX_PATH; listarCarpetas(INBOX_PATH); listarArchivos(INBOX_PATH); };
-          lista.appendChild(volverLi);
+    // Opción placeholder para que en móvil no seleccione la primera carpeta automáticamente
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '-- Seleccionar carpeta --';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    select.appendChild(placeholder);
 
-          const volverOpt = document.createElement('option');
-          volverOpt.textContent = '⬅️ Volver a INBOX';
-          volverOpt.value = INBOX_PATH;
-          select.appendChild(volverOpt);
-        }
+    // Opción de volver solo si no estamos en la raíz INBOX
+    if (parentPath !== INBOX_PATH) {
+      const volverLi = document.createElement('li');
+      volverLi.textContent = '⬅️ Volver a INBOX';
+      volverLi.onclick = () => { qs('carpetaSeleccionada').textContent = INBOX_PATH; listarCarpetas(INBOX_PATH); listarArchivos(INBOX_PATH); };
+      lista.appendChild(volverLi);
 
-        carpetas.forEach(c => {
-          const li = document.createElement('li');
-          li.textContent = c.name;
-          li.onclick = () => {
-            qs('carpetaSeleccionada').textContent = c.path;
-            listarCarpetas(c.path);
-            listarArchivos(c.path);
-          };
-          lista.appendChild(li);
-
-          const opt = document.createElement('option');
-          opt.textContent = c.name;
-          opt.value = c.path;
-          select.appendChild(opt);
-        });
-
-        if (window.innerWidth < 900) {
-          lista.style.display = 'none'; select.style.display = 'block';
-        } else {
-          lista.style.display = 'block'; select.style.display = 'none';
-        }
-
-        select.onchange = () => {
-          const selected = select.value;
-          if (selected) {
-            qs('carpetaSeleccionada').textContent = selected;
-            listarCarpetas(selected);
-            listarArchivos(selected);
-          }
-        };
-
-      } catch (err) {
-        console.error('listarCarpetas:', err);
-        qs('listaCarpetas').innerHTML = `<li class="small-muted">Error: ${err.message || err}</li>`;
-      }
+      const volverOpt = document.createElement('option');
+      volverOpt.textContent = '⬅️ Volver a INBOX';
+      volverOpt.value = INBOX_PATH;
+      // lo agregamos después del placeholder para que sea accesible en móvil
+      select.appendChild(volverOpt);
     }
 
-    async function listarArchivos(carpetaPath) {
-      try {
-        const res = await fetch(apiUrlFor(carpetaPath));
-        if (!res.ok) throw new Error('Error al consultar GitHub: ' + res.status + ' ' + res.statusText);
-        const items = await res.json();
-        const files = (items || []).filter(i => i.type === 'file').sort((a,b)=>a.name.localeCompare(b.name));
-        const lista = qs('listaDocs');
-        const select = qs('selectArchivos');
-        lista.innerHTML = '';
-        select.innerHTML = '';
+    carpetas.forEach(c => {
+      const li = document.createElement('li');
+      li.textContent = c.name;
+      li.onclick = () => {
+        qs('carpetaSeleccionada').textContent = c.path;
+        listarCarpetas(c.path);
+        listarArchivos(c.path);
+      };
+      lista.appendChild(li);
 
-        if (files.length > 0) {
-          files.forEach(f => {
-            const li = document.createElement('li');
-            li.textContent = f.name;
-            li.onclick = () => mostrarArchivo(f);
-            lista.appendChild(li);
+      const opt = document.createElement('option');
+      opt.textContent = c.name;
+      opt.value = c.path;
+      select.appendChild(opt);
+    });
 
-            const opt = document.createElement('option');
-            opt.textContent = f.name;
-            opt.value = f.path;
-            select.appendChild(opt);
-          });
-        } else {
-          lista.innerHTML = '<li class="small-muted">No hay archivos.</li>';
-          const opt = document.createElement('option');
-          opt.textContent = 'No hay archivos';
-          opt.disabled = true;
-          select.appendChild(opt);
-        }
-
-        if (window.innerWidth < 900) {
-          lista.style.display = 'none'; select.style.display = 'block';
-        } else {
-          lista.style.display = 'block'; select.style.display = 'none';
-        }
-
-        select.onchange = () => {
-          const path = select.value;
-          const file = files.find(f => f.path === path);
-          if (file) mostrarArchivo(file);
-        };
-
-      } catch (err) {
-        console.error('listarArchivos:', err);
-        qs('listaDocs').innerHTML = `<li class="small-muted">Error: ${err.message || err}</li>`;
-      }
+    // mostrar/ocultar según ancho (igual que antes)
+    if (window.innerWidth < 900) {
+      lista.style.display = 'none';
+      select.style.display = 'block';
+    } else {
+      lista.style.display = 'block';
+      select.style.display = 'none';
     }
+
+    // manejador: sólo actúa si hay valor (evita que el placeholder dispare acciones)
+    select.onchange = () => {
+      const selected = select.value;
+      if (!selected) return; // salir si placeholder
+      qs('carpetaSeleccionada').textContent = selected;
+      listarCarpetas(selected);
+      listarArchivos(selected);
+    };
+
+  } catch (err) {
+    console.error('listarCarpetas:', err);
+    qs('listaCarpetas').innerHTML = `<li class="small-muted">Error: ${err.message || err}</li>`;
+  }
+}
+
+// Reemplaza por esta versión
+async function listarArchivos(carpetaPath) {
+  try {
+    const res = await fetch(apiUrlFor(carpetaPath));
+    if (!res.ok) throw new Error('Error al consultar GitHub: ' + res.status + ' ' + res.statusText);
+    const items = await res.json();
+    const files = (items || []).filter(i => i.type === 'file').sort((a,b)=>a.name.localeCompare(b.name));
+    const lista = qs('listaDocs');
+    const select = qs('selectArchivos');
+    lista.innerHTML = '';
+    select.innerHTML = '';
+
+    // placeholder para archivos en móvil
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '-- Seleccionar archivo --';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    select.appendChild(placeholder);
+
+    if (files.length > 0) {
+      files.forEach(f => {
+        const li = document.createElement('li');
+        li.textContent = f.name;
+        li.onclick = () => mostrarArchivo(f);
+        lista.appendChild(li);
+
+        const opt = document.createElement('option');
+        opt.textContent = f.name;
+        opt.value = f.path;
+        select.appendChild(opt);
+      });
+    } else {
+      lista.innerHTML = '<li class="small-muted">No hay archivos.</li>';
+      const opt = document.createElement('option');
+      opt.textContent = 'No hay archivos';
+      opt.disabled = true;
+      select.appendChild(opt);
+    }
+
+    if (window.innerWidth < 900) {
+      lista.style.display = 'none';
+      select.style.display = 'block';
+    } else {
+      lista.style.display = 'block';
+      select.style.display = 'none';
+    }
+
+    select.onchange = () => {
+      const path = select.value;
+      if (!path) return; // placeholder -> no hacemos nada
+      const file = files.find(f => f.path === path);
+      if (file) mostrarArchivo(file);
+    };
+
+  } catch (err) {
+    console.error('listarArchivos:', err);
+    qs('listaDocs').innerHTML = `<li class="small-muted">Error: ${err.message || err}</li>`;
+  }
+}
 
     /* VISOR: fetch + objectURL con mapeo MIME */
     async function mostrarArchivo(f) {
