@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gestor Documental — GitHub INBOX</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body { margin:0; font-family: Arial, sans-serif; height:100vh; display:flex; flex-direction:column; }
+    h1 { text-align:center; margin:0; padding:10px; background:#2c3e50; color:white; }
+    #app { flex:1; display:flex; flex-direction:column; height:100%; }
+    main { flex:1; display:grid; grid-template-columns:25% 50% 25%; grid-gap:10px; padding:10px; box-sizing:border-box; min-height:calc(100vh - 60px); }
+    .col-left { display:flex; flex-direction:column; overflow-y:auto; min-height:150px; border:none; }
+    .carpetas, .archivos { flex:1; overflow-y:auto; border:none; background:#f9f9fb; border-radius:8px; padding:10px; box-shadow: inset 0 0 3px rgba(0,0,0,0.08); }
+    .carpetas h3, .archivos h3 { margin-top:0; color:#2c3e50; font-size:1rem; text-transform:uppercase; border-bottom:1px solid #ddd; padding-bottom:5px; }
+    .carpetas ul, .archivos ul { list-style:none; margin:0; padding:0; }
+    .carpetas li, .archivos li { display:flex; align-items:center; padding:8px 10px; margin:3px 0; border-radius:6px; cursor:pointer; transition:all .15s; color:#333; font-size:.95rem; }
+    .carpetas li::before { content:"📁"; margin-right:8px; font-size:1.1rem; }
+    .archivos li::before { content:"📄"; margin-right:8px; font-size:1.1rem; }
+    .carpetas li:hover, .archivos li:hover { background:#e9efff; color:#1a73e8; transform:translateX(3px); }
+    .carpetas li.selected, .archivos li.selected { background:#dce8ff; color:#1a73e8; font-weight:bold; border-left:4px solid #1a73e8; }
+    .col-center { border: none; overflow:auto; display:flex; justify-content:center; align-items:center; min-height:70vh; }
+    .col-center iframe { width:100%; height:100%; border-radius:8px; background:#fff; box-shadow: inset 0 0 3px rgba(0,0,0,0.05); border:none; min-height:400px; }
+    .col-right { padding:10px; display:flex; flex-direction:column; border-radius:8px; background:#f9f9fb; box-shadow: inset 0 0 3px rgba(0,0,0,0.08); }
+    label { font-weight:bold; }
+    input, textarea, select, button { width:100%; margin-bottom:10px; padding:5px; box-sizing:border-box; }
+    button { background:#2c3e50; color:white; border:none; cursor:pointer; }
+    button:hover { background:#34495e; }
+    @media (max-width:768px) {
+      main { grid-template-columns:1fr; }
+      .carpetas ul, .archivos ul { display:none; }
+      .carpetas select, .archivos select { display:block; width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #ccc; background:#fff; }
+    }
+    .meta { font-size:.85rem; color:#666; margin-bottom:8px; }
+  </style>
+</head>
+<body>
+  <div style="text-align:center; padding:8px;">
+    <strong>Gestor Documental (GitHub INBOX)</strong>
+    <div class="meta">Listado público desde la carpeta <code>INBOX</code> del repositorio GitHub.</div>
+  </div>
+
+  <div class="container-fluid" id="app">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+      <div class="container-fluid">
+        <a class="navbar-brand fw-bold text-primary" href="#">📁 Gestor Documental</a>
+      </div>
+    </nav>
+
+    <main>
+      <!-- izquierda -->
+      <div class="col-left">
+        <div class="carpetas">
+          <h3>Carpetas</h3>
+          <ul id="listaCarpetas"></ul>
+          <select id="selectCarpetas" style="display:none;"></select>
+        </div>
+
+        <div class="archivos" style="margin-top:10px;">
+          <h3>Archivos</h3>
+          <div id="carpetaSeleccionada" class="meta">Raíz / INBOX</div>
+          <ul id="listaDocs"></ul>
+          <select id="selectArchivos" style="display:none;"></select>
+        </div>
+      </div>
+
+      <!-- centro -->
+      <div class="col-center">
+        <iframe id="visor" src=""></iframe>
+      </div>
+
+      <!-- derecha -->
+      <div class="col-right">
+        <form id="formRegistro">
+          <h5>Archivo: <span id="archivoSeleccionado">- ninguno -</span></h5>
+
+          <label for="proyecto">Proyecto:</label>
+          <select id="proyecto"></select>
+
+          <label for="categoria">Categoría:</label>
+          <select id="categoria"></select>
+
+          <label for="emisor">Emisor/Receptor:</label>
+          <select id="emisor"></select>
+
+          <label for="propiedad">Propiedad:</label>
+          <select id="propiedad"></select>
+
+          <label>Descripción:</label>
+          <textarea id="comentarios"></textarea>
+
+          <label for="asunto">Asunto:</label>
+          <input id="asunto" />
+
+          <button type="submit" class="btn">Guardar registro (descargar CSV)</button>
+          <button id="btnCopy" type="button">Copiar registro al portapapeles</button>
+
+          <div id="avisoLocal" class="meta">Nota: los registros se guardan localmente y se descargan como CSV. GitHub público = sólo lectura.</div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    /* ---------- CONFIGURACIÓN ---------- */
+    const DEFAULT_BRANCH = 'main';          // cambialo si usás otra rama
+    const INBOX_PATH = 'INBOX';             // carpeta raíz que querés listar
+    // Si tu HTML está alojado en GitHub Pages: intenta inferir owner/repo automáticamente.
+    let GITHUB_OWNER = null;
+    let GITHUB_REPO = null;
+
+    // ---------- UTIL ---------- 
+    function qs(id){ return document.getElementById(id); }
+
+    // intento de detección automática si la página está en github.io
+    function intentarDetectarRepo() {
+      try {
+        const host = location.hostname;
+        const path = location.pathname; // ex: /repo/...
+        if (host.endsWith('github.io')) {
+          // formato: usuario.github.io o usuario.github.io/repo/...
+          const usuario = host.split('.')[0];
+          const partes = path.split('/').filter(Boolean); // elimina vacíos
+          if (partes.length >= 1) {
+            // si está en root del user page (usuario.github.io) y el repo es usuario.github.io -> repo = usuario.github.io (sitios personales)
+            // normalmente el repo public sería el repo donde está el site; probamos usar el primer segmento como repo
+            GITHUB_OWNER = usuario;
+            GITHUB_REPO = partes[0]; // puede fallar pero es la mejor suposición
+            return true;
+          }
+        }
+      } catch(e){}
+      return false;
+    }
+
+    // si no detecta repo, pide al usuario (único prompt, se guarda en memoria de sesión)
+    function solicitarRepoAlUsuario() {
+      if (!GITHUB_OWNER || !GITHUB_REPO) {
+        const ingreso = sessionStorage.getItem('gh_repo');
+        if (ingreso) {
+          const [o,r] = ingreso.split('/');
+          if (o && r) { GITHUB_OWNER = o; GITHUB_REPO = r; return; }
+        }
+        const respuesta = prompt('No pude detectar tu repo automáticamente. Ingresá owner/repo (por ejemplo: usuario/repo). Debe ser público:', '');
+        if (respuesta) {
+          const [o,r] = respuesta.trim().split('/');
+          if (o && r) {
+            GITHUB_OWNER = o; GITHUB_REPO = r;
+            sessionStorage.setItem('gh_repo', `${o}/${r}`);
+            return;
+          }
+        }
+        alert('Para funcionar, necesitás indicar el repo público. Recargá la página e ingresá owner/repo cuando se solicite.');
+      }
+    }
+
+    // construir URL de API para una ruta dentro del repo
+    function apiUrlFor(path) {
+      // path puede ser 'INBOX' o 'INBOX/subcarpeta'
+      return `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(DEFAULT_BRANCH)}`;
+    }
+
+    // ---------- LÓGICA DE NAVEGACIÓN ----------
+
+    // lista carpetas dentro de un parentPath (p.ej. 'INBOX' o 'INBOX/sub')
+    async function listarCarpetas(parentPath = INBOX_PATH) {
+      try {
+        const res = await fetch(apiUrlFor(parentPath));
+        if (!res.ok) throw new Error('Error al consultar GitHub: ' + res.status + ' ' + res.statusText);
+        const items = await res.json();
+        // items es array de objetos con type:'file'|'dir', name, path, download_url
+        const carpetas = (items || []).filter(i => i.type === 'dir').sort((a,b)=>a.name.localeCompare(b.name));
+        const lista = qs('listaCarpetas');
+        const select = qs('selectCarpetas');
+        lista.innerHTML = '';
+        select.innerHTML = '';
+
+        // Si no estamos en la raíz INBOX, agregamos 'Volver a INBOX' y la opción select
+        if (parentPath !== INBOX_PATH) {
+          const volverLi = document.createElement('li');
+          volverLi.textContent = '⬅️ Volver a INBOX';
+          volverLi.onclick = () => { qs('carpetaSeleccionada').textContent = 'INBOX'; listarCarpetas(INBOX_PATH); listarArchivos(INBOX_PATH); };
+          lista.appendChild(volverLi);
+
+          const volverOpt = document.createElement('option');
+          volverOpt.textContent = '⬅️ Volver a INBOX';
+          volverOpt.value = INBOX_PATH;
+          select.appendChild(volverOpt);
+        }
+
+        carpetas.forEach(c => {
+          const li = document.createElement('li');
+          li.textContent = c.name;
+          li.onclick = () => {
+            qs('carpetaSeleccionada').textContent = c.path;
+            listarCarpetas(c.path);
+            listarArchivos(c.path);
+          };
+          lista.appendChild(li);
+
+          const opt = document.createElement('option');
+          opt.textContent = c.name;
+          opt.value = c.path;
+          select.appendChild(opt);
+        });
+
+        // mostrar/ocultar según ancho
+        if (window.innerWidth < 768) {
+          lista.style.display = 'none';
+          select.style.display = 'block';
+        } else {
+          lista.style.display = 'block';
+          select.style.display = 'none';
+        }
+
+        select.onchange = () => {
+          const selected = select.value;
+          if (selected) {
+            qs('carpetaSeleccionada').textContent = selected;
+            listarCarpetas(selected);
+            listarArchivos(selected);
+          }
+        };
+
+      } catch (err) {
+        console.error('listarCarpetas:', err);
+        qs('listaCarpetas').innerHTML = `<li>Error listando carpetas: ${err.message || err}</li>`;
+      }
+    }
+
+    // listar archivos de una carpeta concreta
+    async function listarArchivos(carpetaPath) {
+      try {
+        const res = await fetch(apiUrlFor(carpetaPath));
+        if (!res.ok) throw new Error('Error al consultar GitHub: ' + res.status + ' ' + res.statusText);
+        const items = await res.json();
+        const files = (items || []).filter(i => i.type === 'file').sort((a,b)=>a.name.localeCompare(b.name));
+        const lista = qs('listaDocs');
+        const select = qs('selectArchivos');
+        lista.innerHTML = '';
+        select.innerHTML = '';
+
+        if (files.length > 0) {
+          files.forEach(f => {
+            const li = document.createElement('li');
+            li.textContent = f.name;
+            li.onclick = () => mostrarArchivo(f);
+            lista.appendChild(li);
+
+            const opt = document.createElement('option');
+            opt.textContent = f.name;
+            opt.value = f.path; // guardamos path para buscar en array
+            select.appendChild(opt);
+          });
+        } else {
+          lista.innerHTML = '<li>No hay archivos.</li>';
+          const opt = document.createElement('option');
+          opt.textContent = 'No hay archivos';
+          opt.disabled = true;
+          select.appendChild(opt);
+        }
+
+        if (window.innerWidth < 768) {
+          lista.style.display = 'none';
+          select.style.display = 'block';
+        } else {
+          lista.style.display = 'block';
+          select.style.display = 'none';
+        }
+
+        select.onchange = () => {
+          const path = select.value;
+          const file = files.find(f => f.path === path);
+          if (file) mostrarArchivo(file);
+        };
+
+      } catch (err) {
+        console.error('listarArchivos:', err);
+        qs('listaDocs').innerHTML = `<li>Error listando archivos: ${err.message || err}</li>`;
+      }
+    }
+
+    // mostrar archivo en visor
+    async function mostrarArchivo(f) {
+      // f contiene name, path, download_url, type
+      const visor = qs('visor');
+      visor.removeAttribute('src');
+      visor.removeAttribute('srcdoc');
+
+      // actualizamos la UI (archivo seleccionado)
+      qs('archivoSeleccionado').textContent = f.name;
+      qs('archivoSeleccionado').dataset.filePath = f.path || '';
+      qs('archivoSeleccionado').dataset.downloadUrl = f.download_url || '';
+
+      const tipo = (f.name.split('.').pop() || '').toLowerCase();
+      const tiposVisibles = ['pdf','jpg','jpeg','png','gif','svg','txt','md'];
+
+      if (!f.download_url) {
+        visor.srcdoc = `<div style="padding:20px; text-align:center;">No se encontró URL de descarga para este archivo.</div>`;
+        return;
+      }
+
+      if (['pdf'].includes(tipo)) {
+        // los navegadores suelen renderizar PDFs desde la URL cruda
+        visor.src = f.download_url;
+      } else if (['jpg','jpeg','png','gif','svg'].includes(tipo)) {
+        // mostramos imagen dentro del iframe con un simple HTML
+        visor.srcdoc = `<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:12px;"><img src="${f.download_url}" style="max-width:100%;max-height:100%;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.12)"></div>`;
+      } else if (['txt','md','csv','json','js','css','html'].includes(tipo)) {
+        // mostrar texto simple en el iframe (para md/txt/..)
+        try {
+          const txt = await fetch(f.download_url).then(r => r.text());
+          // escapamos contenido mínimo para evitar interpretaciones
+          const esc = (s) => s.replaceAll('<','&lt;').replaceAll('>','&gt;');
+          visor.srcdoc = `<div style="padding:12px; font-family:monospace; white-space:pre-wrap; overflow:auto; height:100%;">${esc(txt)}</div>`;
+        } catch (e) {
+          visor.srcdoc = `<div style="text-align:center;padding:20px;">No se pudo recuperar el contenido para vista previa.</div>`;
+        }
+      } else {
+        // tipo no soportado para preview: mostramos enlace de descarga
+        visor.srcdoc = `
+          <div style="text-align:center;padding:20px;font-family:sans-serif">
+            <p><strong>No se puede visualizar este tipo de archivo aquí.</strong></p>
+            <p>Nombre: ${f.name}</p>
+            <a href="${f.download_url}" target="_blank" style="font-weight:bold;color:#2c3e50;">Descargar / Abrir en nueva pestaña</a>
+          </div>
+        `;
+      }
+    }
+
+    // ---------- FORMULARIO: guardado local como CSV ----------
+    function csvEscape(v) {
+      if (v === null || v === undefined) return '';
+      const s = String(v);
+      if (/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+      return s;
+    }
+
+    function descargarCSV(filas, filename = 'registros.csv') {
+      const csv = filas.map(r => r.map(csvEscape).join(',')).join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('formRegistro').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const archivo = qs('archivoSeleccionado').textContent || '';
+      const filePath = qs('archivoSeleccionado').dataset.filePath || '';
+      const downloadUrl = qs('archivoSeleccionado').dataset.downloadUrl || '';
+      const proyecto = qs('proyecto').value || '';
+      const categoria = qs('categoria').value || '';
+      const emisor = qs('emisor').value || '';
+      const propiedad = qs('propiedad').value || '';
+      const comentarios = qs('comentarios').value || '';
+      const asunto = qs('asunto').value || '';
+      if (!archivo || archivo === '- ninguno -' || !filePath) {
+        alert('Seleccioná un archivo antes de guardar.');
+        return;
+      }
+      if (!proyecto) {
+        alert('Completá el campo Proyecto.');
+        return;
+      }
+
+      const fila = [
+        new Date().toISOString(),
+        archivo,
+        filePath,
+        downloadUrl,
+        proyecto,
+        categoria,
+        emisor,
+        propiedad,
+        asunto,
+        comentarios
+      ];
+
+      // descargamos una CSV con una sola fila (podés adaptar para agregar múltiples filas)
+      descargarCSV([['Fecha','Nombre','Path','DownloadURL','Proyecto','Categoria','Emisor','Propiedad','Asunto','Comentarios'], fila]);
+
+      alert('Registro preparado y descargado como CSV.');
+      // limpiamos
+      qs('archivoSeleccionado').textContent = '- ninguno -';
+      qs('archivoSeleccionado').dataset.filePath = '';
+      qs('archivoSeleccionado').dataset.downloadUrl = '';
+      qs('proyecto').value = '';
+      qs('categoria').value = '';
+      qs('emisor').value = '';
+      qs('propiedad').value = '';
+      qs('comentarios').value = '';
+      qs('asunto').value = '';
+      qs('visor').srcdoc = '';
+    });
+
+    // copiar registro al portapapeles (fila CSV)
+    qs('btnCopy').addEventListener('click', () => {
+      const archivo = qs('archivoSeleccionado').textContent || '';
+      const filePath = qs('archivoSeleccionado').dataset.filePath || '';
+      const downloadUrl = qs('archivoSeleccionado').dataset.downloadUrl || '';
+      const proyecto = qs('proyecto').value || '';
+      const categoria = qs('categoria').value || '';
+      const emisor = qs('emisor').value || '';
+      const propiedad = qs('propiedad').value || '';
+      const comentarios = qs('comentarios').value || '';
+      const asunto = qs('asunto').value || '';
+      const fila = [new Date().toISOString(), archivo, filePath, downloadUrl, proyecto, categoria, emisor, propiedad, asunto, comentarios];
+      const linea = fila.map(csvEscape).join(',');
+      navigator.clipboard?.writeText(linea).then(() => {
+        alert('Registro copiado al portapapeles (formato CSV, una línea).');
+      }).catch(()=> {
+        alert('No pude copiar al portapapeles. Podés descargar el CSV con "Guardar registro".');
+      });
+    });
+
+    // ---------- UTILIDADES UI para selects (puedes prellenar manualmente) ----------
+    function llenarSelect(id, opciones) {
+      const select = qs(id);
+      select.innerHTML = '<option value="">-- Seleccionar --</option>';
+      opciones.forEach(op => {
+        const o = document.createElement('option');
+        o.value = op;
+        o.textContent = op;
+        select.appendChild(o);
+      });
+      // opción para agregar nuevo valor localmente
+      const nuevo = document.createElement('option');
+      nuevo.value = '__nuevo__';
+      nuevo.textContent = '➕ Agregar nuevo...';
+      select.appendChild(nuevo);
+
+      select.addEventListener('change', () => {
+        if (select.value === '__nuevo__') {
+          const val = prompt('Ingrese nuevo valor para ' + id);
+          if (val) {
+            const opcionesExistentes = Array.from(select.options)
+              .filter(o => o.value !== '__nuevo__')
+              .map(o => o.value)
+              .concat(val)
+              .sort((a,b)=>a.localeCompare(b));
+            select.innerHTML = '<option value="">-- Seleccionar --</option>';
+            opcionesExistentes.forEach(v => {
+              const o = document.createElement('option');
+              o.value = v; o.textContent = v; select.appendChild(o);
+            });
+            select.appendChild(nuevo);
+            select.value = val;
+          } else {
+            select.value = '';
+          }
+        }
+      });
+    }
+
+    // valores por defecto (podés cargar desde archivo si querés)
+    llenarSelect('proyecto', ['Proyecto A','Proyecto B']);
+    llenarSelect('categoria', ['Administrativo','Técnico']);
+    llenarSelect('emisor', ['Proveedor','Cliente']);
+    llenarSelect('propiedad', ['Empresa','Cliente']);
+
+    // ---------- INICIALIZACIÓN ----------
+    (async function init() {
+      // intentamos detectar repo
+      if (!intentarDetectarRepo()) {
+        // si no pudo detectar, revisar sessionStorage o pedir al usuario
+        solicitarRepoAlUsuario();
+      } else {
+        // si detectamos repo, guardamos en sessionStorage para evitar pedir
+        if (GITHUB_OWNER && GITHUB_REPO) sessionStorage.setItem('gh_repo', `${GITHUB_OWNER}/${GITHUB_REPO}`);
+      }
+
+      if (!GITHUB_OWNER || !GITHUB_REPO) {
+        // si aún no tenemos repo, no hacemos nada más
+        qs('listaCarpetas').innerHTML = '<li>No hay repo configurado. Recargá e ingresá owner/repo cuando se solicite.</li>';
+        return;
+      }
+
+      // listamos INBOX por defecto
+      qs('carpetaSeleccionada').textContent = INBOX_PATH;
+      await listarCarpetas(INBOX_PATH);
+      await listarArchivos(INBOX_PATH);
+      console.log('Repo usado:', GITHUB_OWNER + '/' + GITHUB_REPO);
+    })();
+
+    // ajusta visibilidad al redimensionar
+    window.addEventListener('resize', () => {
+      if (window.innerWidth < 768) {
+        qs('listaCarpetas').style.display = 'none';
+        qs('selectCarpetas').style.display = 'block';
+        qs('listaDocs').style.display = 'none';
+        qs('selectArchivos').style.display = 'block';
+      } else {
+        qs('listaCarpetas').style.display = 'block';
+        qs('selectCarpetas').style.display = 'none';
+        qs('listaDocs').style.display = 'block';
+        qs('selectArchivos').style.display = 'none';
+      }
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
