@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gestor Documental — GitHub INBOX</title>
+
+  <!-- Bootstrap y Icons (mismo look que tu otro ejemplo) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+  <style>
+    /* Estilo base tomado del archivo ejemplo */
+    body{padding:24px;background:#f7fafc;font-family:Inter,system-ui,Arial;color:#0f172a}
+    .small-muted{font-size:0.85rem;color:#6b7280}
+    .btn-ghost{border:1px solid #e6edf3;background:transparent;color:#111827}
+    .table-responsive{max-height:520px;overflow:auto}
+    .required-badge{background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:6px;font-size:12px}
+    .optional-badge{background:#e6f0ff;color:#0b5fff;padding:2px 6px;border-radius:6px;font-size:12px}
+
+    /* Ajustes del layout del gestor (manteniendo tu estructura original) */
+    #app { display:flex; flex-direction:column; }
+    main { display:grid; grid-template-columns:25% 50% 25%; grid-gap:12px; padding:12px; box-sizing:border-box; }
+    .col-left { display:flex; flex-direction:column; gap:12px; }
+    .carpetas, .archivos, .col-right { background:#fff; border-radius:10px; padding:12px; box-shadow: 0 6px 18px rgba(12,26,75,0.06); }
+    .carpetas h3, .archivos h3 { margin-top:0; margin-bottom:8px; font-size:0.85rem; color:#0f172a; text-transform:uppercase; letter-spacing:0.6px; }
+    .carpetas ul, .archivos ul { list-style:none; margin:0; padding:0; max-height:46vh; overflow:auto; }
+    .carpetas li, .archivos li { padding:8px 10px; border-radius:8px; cursor:pointer; transition:all .12s; display:flex; align-items:center; gap:8px; color:#0f172a; }
+    .carpetas li:hover, .archivos li:hover { background:#eef6ff; transform:translateX(3px); color:#0b5fff; }
+    .carpetas li::before { content:"📁"; margin-right:6px; }
+    .archivos li::before { content:"📄"; margin-right:6px; }
+    .col-center { background:#fff; border-radius:10px; padding:8px; display:flex; align-items:center; justify-content:center; box-shadow: 0 6px 18px rgba(12,26,75,0.06); min-height:60vh; }
+    .col-center iframe { width:100%; height:100%; min-height:420px; border-radius:8px; border:none; }
+    .col-right label { font-weight:600; font-size:0.9rem; }
+    .col-right input, .col-right select, .col-right textarea { border-radius:8px; border:1px solid #e6edf3; padding:8px; }
+    .h-title { font-size:1.05rem; font-weight:600; margin-bottom:4px; }
+    .container-custom { max-width:1100px; margin:0 auto; }
+    @media (max-width:900px) {
+      main { grid-template-columns:1fr; }
+      .carpetas ul, .archivos ul { display:none; }
+      .carpetas select, .archivos select { display:block; width:100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-custom">
+    <div class="d-flex justify-
