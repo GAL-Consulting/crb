@@ -44,4 +44,453 @@
 </head>
 <body>
   <div class="container-custom">
-    <div class="d-flex justify-
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h1 class="h5 mb-0">📁 Gestor Documental</h1>
+        <div class="small-muted">Listado público desde la carpeta <code>INBOX</code> del repositorio GitHub.</div>
+      </div>
+      <div>
+        <span class="small-muted">Interfaz pública — sin login</span>
+      </div>
+    </div>
+
+    <main>
+      <!-- izquierda -->
+      <div class="col-left">
+        <div class="carpetas">
+          <h3>Carpetas</h3>
+          <ul id="listaCarpetas"></ul>
+          <select id="selectCarpetas" style="display:none;"></select>
+        </div>
+
+        <div class="archivos">
+          <h3>Archivos</h3>
+          <div id="carpetaSeleccionada" class="small-muted mb-2">Raíz / INBOX</div>
+          <ul id="listaDocs"></ul>
+          <select id="selectArchivos" style="display:none;"></select>
+        </div>
+      </div>
+
+      <!-- centro -->
+      <div class="col-center">
+        <iframe id="visor" src=""></iframe>
+      </div>
+
+      <!-- derecha -->
+      <div class="col-right">
+        <div class="h-title">Registro del archivo</div>
+        <form id="formRegistro">
+          <div class="mb-2">
+            <label class="form-label">Archivo seleccionado</label>
+            <div id="archivoSeleccionado" class="small-muted">- ninguno -</div>
+          </div>
+
+          <div class="mb-2">
+            <label for="proyecto">Proyecto</label>
+            <select id="proyecto" class="form-select form-select-sm"></select>
+          </div>
+
+          <div class="mb-2">
+            <label for="categoria">Categoría</label>
+            <select id="categoria" class="form-select form-select-sm"></select>
+          </div>
+
+          <div class="mb-2">
+            <label for="emisor">Emisor/Receptor</label>
+            <select id="emisor" class="form-select form-select-sm"></select>
+          </div>
+
+          <div class="mb-2">
+            <label for="propiedad">Propiedad</label>
+            <select id="propiedad" class="form-select form-select-sm"></select>
+          </div>
+
+          <div class="mb-2">
+            <label>Descripción</label>
+            <textarea id="comentarios" rows="3" class="form-control form-control-sm"></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label for="asunto">Asunto</label>
+            <input id="asunto" class="form-control form-control-sm" />
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-dark btn-sm">Guardar registro (descargar CSV)</button>
+            <button id="btnCopy" type="button" class="btn btn-outline-secondary btn-ghost btn-sm">Copiar línea (CSV)</button>
+          </div>
+
+          <div class="small-muted mt-2">Nota: los registros se guardan localmente y se descargan como CSV. GitHub público = sólo lectura.</div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    /* ---------- CONFIGURACIÓN ---------- */
+    const DEFAULT_BRANCH = 'main';
+    const INBOX_PATH = 'INBOX';
+    let GITHUB_OWNER = null;
+    let GITHUB_REPO = null;
+    let lastObjectUrl = null; // UNA sola declaración
+
+    /* UTIL */
+    function qs(id){ return document.getElementById(id); }
+
+    function intentarDetectarRepo() {
+      try {
+        const host = location.hostname;
+        const path = location.pathname;
+        if (host.endsWith('github.io')) {
+          const usuario = host.split('.')[0];
+          const partes = path.split('/').filter(Boolean);
+          if (partes.length >= 1) {
+            GITHUB_OWNER = usuario;
+            GITHUB_REPO = partes[0];
+            return true;
+          }
+        }
+      } catch(e){}
+      return false;
+    }
+
+    function solicitarRepoAlUsuario() {
+      if (!GITHUB_OWNER || !GITHUB_REPO) {
+        const ingreso = sessionStorage.getItem('gh_repo');
+        if (ingreso) {
+          const [o,r] = ingreso.split('/');
+          if (o && r) { GITHUB_OWNER = o; GITHUB_REPO = r; return; }
+        }
+        const respuesta = prompt('No pude detectar tu repo automáticamente. Ingresá owner/repo (por ejemplo: usuario/repo). Debe ser público:', '');
+        if (respuesta) {
+          const [o,r] = respuesta.trim().split('/');
+          if (o && r) {
+            GITHUB_OWNER = o; GITHUB_REPO = r;
+            sessionStorage.setItem('gh_repo', `${o}/${r}`);
+            return;
+          }
+        }
+        alert('Para funcionar, necesitás indicar el repo público. Recargá la página e ingresá owner/repo cuando se solicite.');
+      }
+    }
+
+    function apiUrlFor(path) {
+      return `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(DEFAULT_BRANCH)}`;
+    }
+
+    /* NAV / LISTING */
+    async function listarCarpetas(parentPath = INBOX_PATH) {
+      try {
+        const res = await fetch(apiUrlFor(parentPath));
+        if (!res.ok) throw new Error('Error al consultar GitHub: ' + res.status + ' ' + res.statusText);
+        const items = await res.json();
+        const carpetas = (items || []).filter(i => i.type === 'dir').sort((a,b)=>a.name.localeCompare(b.name));
+        const lista = qs('listaCarpetas');
+        const select = qs('selectCarpetas');
+        lista.innerHTML = '';
+        select.innerHTML = '';
+
+        if (parentPath !== INBOX_PATH) {
+          const volverLi = document.createElement('li');
+          volverLi.textContent = '⬅️ Volver a INBOX';
+          volverLi.onclick = () => { qs('carpetaSeleccionada').textContent = INBOX_PATH; listarCarpetas(INBOX_PATH); listarArchivos(INBOX_PATH); };
+          lista.appendChild(volverLi);
+
+          const volverOpt = document.createElement('option');
+          volverOpt.textContent = '⬅️ Volver a INBOX';
+          volverOpt.value = INBOX_PATH;
+          select.appendChild(volverOpt);
+        }
+
+        carpetas.forEach(c => {
+          const li = document.createElement('li');
+          li.textContent = c.name;
+          li.onclick = () => {
+            qs('carpetaSeleccionada').textContent = c.path;
+            listarCarpetas(c.path);
+            listarArchivos(c.path);
+          };
+          lista.appendChild(li);
+
+          const opt = document.createElement('option');
+          opt.textContent = c.name;
+          opt.value = c.path;
+          select.appendChild(opt);
+        });
+
+        if (window.innerWidth < 900) {
+          lista.style.display = 'none'; select.style.display = 'block';
+        } else {
+          lista.style.display = 'block'; select.style.display = 'none';
+        }
+
+        select.onchange = () => {
+          const selected = select.value;
+          if (selected) {
+            qs('carpetaSeleccionada').textContent = selected;
+            listarCarpetas(selected);
+            listarArchivos(selected);
+          }
+        };
+
+      } catch (err) {
+        console.error('listarCarpetas:', err);
+        qs('listaCarpetas').innerHTML = `<li class="small-muted">Error: ${err.message || err}</li>`;
+      }
+    }
+
+    async function listarArchivos(carpetaPath) {
+      try {
+        const res = await fetch(apiUrlFor(carpetaPath));
+        if (!res.ok) throw new Error('Error al consultar GitHub: ' + res.status + ' ' + res.statusText);
+        const items = await res.json();
+        const files = (items || []).filter(i => i.type === 'file').sort((a,b)=>a.name.localeCompare(b.name));
+        const lista = qs('listaDocs');
+        const select = qs('selectArchivos');
+        lista.innerHTML = '';
+        select.innerHTML = '';
+
+        if (files.length > 0) {
+          files.forEach(f => {
+            const li = document.createElement('li');
+            li.textContent = f.name;
+            li.onclick = () => mostrarArchivo(f);
+            lista.appendChild(li);
+
+            const opt = document.createElement('option');
+            opt.textContent = f.name;
+            opt.value = f.path;
+            select.appendChild(opt);
+          });
+        } else {
+          lista.innerHTML = '<li class="small-muted">No hay archivos.</li>';
+          const opt = document.createElement('option');
+          opt.textContent = 'No hay archivos';
+          opt.disabled = true;
+          select.appendChild(opt);
+        }
+
+        if (window.innerWidth < 900) {
+          lista.style.display = 'none'; select.style.display = 'block';
+        } else {
+          lista.style.display = 'block'; select.style.display = 'none';
+        }
+
+        select.onchange = () => {
+          const path = select.value;
+          const file = files.find(f => f.path === path);
+          if (file) mostrarArchivo(file);
+        };
+
+      } catch (err) {
+        console.error('listarArchivos:', err);
+        qs('listaDocs').innerHTML = `<li class="small-muted">Error: ${err.message || err}</li>`;
+      }
+    }
+
+    /* VISOR: fetch + objectURL con mapeo MIME */
+    async function mostrarArchivo(f) {
+      const visor = qs('visor');
+
+      if (lastObjectUrl) {
+        try { URL.revokeObjectURL(lastObjectUrl); } catch(e){}
+        lastObjectUrl = null;
+      }
+
+      visor.removeAttribute('src');
+      visor.removeAttribute('srcdoc');
+
+      qs('archivoSeleccionado').textContent = f.name;
+      qs('archivoSeleccionado').dataset.filePath = f.path || '';
+      qs('archivoSeleccionado').dataset.downloadUrl = f.download_url || '';
+
+      const ext = (f.name.split('.').pop() || '').toLowerCase();
+      const mimeMap = {
+        'pdf': 'application/pdf','txt':'text/plain','md':'text/markdown','csv':'text/csv','json':'application/json',
+        'js':'application/javascript','css':'text/css','html':'text/html','htm':'text/html','jpg':'image/jpeg',
+        'jpeg':'image/jpeg','png':'image/png','gif':'image/gif','svg':'image/svg+xml','webp':'image/webp','bmp':'image/bmp','xml':'application/xml'
+      };
+
+      const tiposPdf = ['pdf'];
+      const tiposImagen = ['jpg','jpeg','png','gif','svg','webp','bmp'];
+      const tiposTexto = ['txt','md','csv','json','js','css','html','htm','xml'];
+
+      if (!f.download_url) {
+        visor.srcdoc = `<div style="padding:20px;text-align:center;" class="small-muted">No se encontró URL de descarga para este archivo.</div>`;
+        return;
+      }
+
+      try {
+        if (tiposPdf.includes(ext) || tiposImagen.includes(ext)) {
+          const resp = await fetch(f.download_url);
+          if (!resp.ok) throw new Error('Error al descargar archivo: ' + resp.status);
+          const blob = await resp.blob();
+          const mimeForExt = mimeMap[ext] || (blob.type || 'application/octet-stream');
+          const normalizedBlob = blob.type === mimeForExt ? blob : new Blob([blob], { type: mimeForExt });
+          const objectUrl = URL.createObjectURL(normalizedBlob);
+          lastObjectUrl = objectUrl;
+
+          if (tiposPdf.includes(ext)) {
+            visor.src = objectUrl;
+          } else {
+            visor.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;display:flex;align-items:center;justify-content:center;height:100%;background:#fff;"><img src="${objectUrl}" style="max-width:100%;max-height:100%;border-radius:6px;"/></body></html>`;
+          }
+          return;
+        }
+
+        if (tiposTexto.includes(ext)) {
+          const resp = await fetch(f.download_url);
+          if (!resp.ok) throw new Error('Error al descargar archivo: ' + resp.status);
+          const txt = await resp.text();
+          const esc = s => String(s||'').replaceAll('<','&lt;').replaceAll('>','&gt;');
+          visor.srcdoc = `<div style="padding:12px; font-family:monospace; white-space:pre-wrap; overflow:auto; height:100%;">${esc(txt)}</div>`;
+          return;
+        }
+
+        // otros tipos (fallback)
+        const respOther = await fetch(f.download_url);
+        if (!respOther.ok) throw new Error('Error al descargar archivo: ' + respOther.status);
+        const blobOther = await respOther.blob();
+        const mimeForExtOther = mimeMap[ext] || (blobOther.type || 'application/octet-stream');
+        const normalizedBlobOther = blobOther.type === mimeForExtOther ? blobOther : new Blob([blobOther], { type: mimeForExtOther });
+        const objectUrlOther = URL.createObjectURL(normalizedBlobOther);
+        lastObjectUrl = objectUrlOther;
+        visor.src = objectUrlOther;
+
+      } catch (err) {
+        console.error('mostrarArchivo - fallback:', err);
+        const link = f.download_url ? `<a href="${f.download_url}" target="_blank" style="font-weight:bold;color:#0b5fff;">Abrir/Descargar archivo en nueva pestaña</a>` : '';
+        visor.srcdoc = `<div style="padding:20px; text-align:center; font-family:sans-serif;"><p><strong>No se pudo mostrar la vista previa.</strong></p><p>Nombre: ${f.name}</p><p class="small-muted">Error: ${err.message || err}</p>${link}</div>`;
+      }
+    }
+
+    /* FORM: CSV local */
+    function csvEscape(v) {
+      if (v === null || v === undefined) return '';
+      const s = String(v);
+      if (/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+      return s;
+    }
+
+    function descargarCSV(filas, filename = 'registros.csv') {
+      const csv = filas.map(r => r.map(csvEscape).join(',')).join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    qs('formRegistro').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const archivo = qs('archivoSeleccionado').textContent || '';
+      const filePath = qs('archivoSeleccionado').dataset.filePath || '';
+      const downloadUrl = qs('archivoSeleccionado').dataset.downloadUrl || '';
+      const proyecto = qs('proyecto').value || '';
+      const categoria = qs('categoria').value || '';
+      const emisor = qs('emisor').value || '';
+      const propiedad = qs('propiedad').value || '';
+      const comentarios = qs('comentarios').value || '';
+      const asunto = qs('asunto').value || '';
+      if (!archivo || archivo === '- ninguno -' || !filePath) { alert('Seleccioná un archivo antes de guardar.'); return; }
+      if (!proyecto) { alert('Completá el campo Proyecto.'); return; }
+
+      const fila = [ new Date().toISOString(), archivo, filePath, downloadUrl, proyecto, categoria, emisor, propiedad, asunto, comentarios ];
+      descargarCSV([['Fecha','Nombre','Path','DownloadURL','Proyecto','Categoria','Emisor','Propiedad','Asunto','Comentarios'], fila]);
+      alert('Registro preparado y descargado como CSV.');
+
+      // limpiar
+      qs('archivoSeleccionado').textContent = '- ninguno -';
+      qs('archivoSeleccionado').dataset.filePath = '';
+      qs('archivoSeleccionado').dataset.downloadUrl = '';
+      qs('proyecto').value = '';
+      qs('categoria').value = '';
+      qs('emisor').value = '';
+      qs('propiedad').value = '';
+      qs('comentarios').value = '';
+      qs('asunto').value = '';
+      qs('visor').srcdoc = '';
+    });
+
+    qs('btnCopy').addEventListener('click', () => {
+      const archivo = qs('archivoSeleccionado').textContent || '';
+      const filePath = qs('archivoSeleccionado').dataset.filePath || '';
+      const downloadUrl = qs('archivoSeleccionado').dataset.downloadUrl || '';
+      const proyecto = qs('proyecto').value || '';
+      const categoria = qs('categoria').value || '';
+      const emisor = qs('emisor').value || '';
+      const propiedad = qs('propiedad').value || '';
+      const comentarios = qs('comentarios').value || '';
+      const asunto = qs('asunto').value || '';
+      const fila = [new Date().toISOString(), archivo, filePath, downloadUrl, proyecto, categoria, emisor, propiedad, asunto, comentarios];
+      const linea = fila.map(csvEscape).join(',');
+      navigator.clipboard?.writeText(linea).then(() => {
+        alert('Registro copiado al portapapeles (formato CSV, una línea).');
+      }).catch(()=> {
+        alert('No pude copiar al portapapeles. Podés descargar el CSV con "Guardar registro".');
+      });
+    });
+
+    /* Selects iniciales */
+    function llenarSelect(id, opciones) {
+      const select = qs(id);
+      select.innerHTML = '<option value="">-- Seleccionar --</option>';
+      opciones.forEach(op => {
+        const o = document.createElement('option'); o.value = op; o.textContent = op; select.appendChild(o);
+      });
+      const nuevo = document.createElement('option'); nuevo.value='__nuevo__'; nuevo.textContent='➕ Agregar nuevo...'; select.appendChild(nuevo);
+      select.addEventListener('change', () => {
+        if (select.value === '__nuevo__') {
+          const val = prompt('Ingrese nuevo valor para ' + id);
+          if (val) {
+            const opcionesExistentes = Array.from(select.options).filter(o => o.value!=='__nuevo__').map(o => o.value).concat(val).sort((a,b)=>a.localeCompare(b));
+            select.innerHTML = '<option value="">-- Seleccionar --</option>';
+            opcionesExistentes.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; select.appendChild(o); });
+            select.appendChild(nuevo);
+            select.value = val;
+          } else select.value = '';
+        }
+      });
+    }
+    llenarSelect('proyecto', ['Proyecto A','Proyecto B']);
+    llenarSelect('categoria',['Administrativo','Técnico']);
+    llenarSelect('emisor', ['Proveedor','Cliente']);
+    llenarSelect('propiedad', ['Empresa','Cliente']);
+
+    /* INICIALIZACIÓN */
+    (async function init() {
+      if (!intentarDetectarRepo()) {
+        solicitarRepoAlUsuario();
+      } else {
+        if (GITHUB_OWNER && GITHUB_REPO) sessionStorage.setItem('gh_repo', `${GITHUB_OWNER}/${GITHUB_REPO}`);
+      }
+
+      if (!GITHUB_OWNER || !GITHUB_REPO) {
+        qs('listaCarpetas').innerHTML = '<li class="small-muted">No hay repo configurado. Recargá e ingresá owner/repo cuando se solicite.</li>';
+        return;
+      }
+
+      qs('carpetaSeleccionada').textContent = INBOX_PATH;
+      await listarCarpetas(INBOX_PATH);
+      await listarArchivos(INBOX_PATH);
+      console.log('Repo usado:', GITHUB_OWNER + '/' + GITHUB_REPO);
+    })();
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth < 900) {
+        qs('listaCarpetas').style.display = 'none'; qs('selectCarpetas').style.display = 'block';
+        qs('listaDocs').style.display = 'none'; qs('selectArchivos').style.display = 'block';
+      } else {
+        qs('listaCarpetas').style.display = 'block'; qs('selectCarpetas').style.display = 'none';
+        qs('listaDocs').style.display = 'block'; qs('selectArchivos').style.display = 'none';
+      }
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
