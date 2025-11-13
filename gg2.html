@@ -193,6 +193,7 @@ function setSelectValueIfExists(select, value) {
 }
 
 // LISTAR CARPETAS (robusta)
+// Versión simple: el select de carpetas se maneja igual que el select de archivos
 async function listarCarpetas(parentPath = INBOX_PATH) {
   try {
     const res = await fetch(apiUrlFor(parentPath));
@@ -204,17 +205,14 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
     lista.innerHTML = '';
     select.innerHTML = '';
 
-    // Aseguramos estilo Bootstrap para legibilidad en móvil
-    select.classList.add('form-select','form-select-sm');
-
-    // Placeholder (NO lo marcamos disabled para compatibilidad móvil)
+    // placeholder simple (no tricks)
     const placeholder = document.createElement('option');
     placeholder.value = '';
     placeholder.textContent = '-- Seleccionar carpeta --';
     placeholder.selected = true;
     select.appendChild(placeholder);
 
-    // Volver (si corresponde)
+    // Volver a INBOX si estamos en subcarpeta
     if (parentPath !== INBOX_PATH) {
       const volverLi = document.createElement('li');
       volverLi.textContent = '⬅️ Volver a INBOX';
@@ -222,8 +220,8 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
         qs('carpetaSeleccionada').textContent = INBOX_PATH;
         listarCarpetas(INBOX_PATH);
         listarArchivos(INBOX_PATH);
-        // dejar placeholder visible
-        setSelectValueIfExists(select, '');
+        // dejamos el placeholder seleccionado
+        select.value = '';
       };
       lista.appendChild(volverLi);
 
@@ -233,13 +231,15 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
       select.appendChild(volverOpt);
     }
 
+    // Agregamos las carpetas
     carpetas.forEach(c => {
       const li = document.createElement('li');
       li.textContent = c.name;
       li.onclick = () => {
         qs('carpetaSeleccionada').textContent = c.path;
-        // reflejamos la selección en el select (para móviles)
-        setSelectValueIfExists(select, c.path);
+        // igual que el select de archivos: intentamos setear el value del select
+        // (si la opción existe, se mostrará en el control)
+        select.value = c.path;
         listarCarpetas(c.path);
         listarArchivos(c.path);
       };
@@ -251,12 +251,7 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
       select.appendChild(opt);
     });
 
-    // Si parentPath coincide con alguna opción, marcarla (útil cuando abrimos subcarpeta por código)
-    if (parentPath) {
-      // sólo seteamos si existe la option (evita dejar el select en blanco)
-      setSelectValueIfExists(select, parentPath);
-    }
-
+    // Mostrar/ocultar según ancho
     if (window.innerWidth < 900) {
       lista.style.display = 'none';
       select.style.display = 'block';
@@ -265,10 +260,15 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
       select.style.display = 'none';
     }
 
+    // Evento onchange — igual que archivos
     select.onchange = () => {
       const selected = select.value;
-      if (!selected) {
-        // placeholder elegido (o vuelto al estado inicial) -> no hacemos nada
+      if (!selected) return; // placeholder
+      if (selected === INBOX_PATH) {
+        qs('carpetaSeleccionada').textContent = INBOX_PATH;
+        listarCarpetas(INBOX_PATH);
+        listarArchivos(INBOX_PATH);
+        select.value = '';
         return;
       }
       qs('carpetaSeleccionada').textContent = selected;
