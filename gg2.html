@@ -189,31 +189,41 @@ function findOptionIndex(select, value) {
 }
 
 // LISTAR CARPETAS (con logs y selección robusta)
+// Versión corregida: el placeholder muestra la carpeta actual cuando navegás dentro de una carpeta
 async function listarCarpetas(parentPath = INBOX_PATH) {
   try {
     console.log('listarCarpetas -> parentPath:', parentPath);
     const res = await fetch(apiUrlFor(parentPath));
-    if (!res.ok) {
-      const txt = await res.text().catch(()=>'');
-      throw new Error('Error al consultar GitHub: ' + res.status + ' ' + res.statusText + ' ' + txt);
-    }
+    if (!res.ok) throw new Error('Error al consultar GitHub: ' + res.status + ' ' + res.statusText);
     const items = await res.json();
-    console.log('GitHub items for', parentPath, items);
-
-    // filtramos solo carpetas
-    const carpetas = (Array.isArray(items) ? items : []).filter(i => i.type === 'dir').sort((a,b)=>a.name.localeCompare(b.name));
+    const carpetas = (items || []).filter(i => i.type === 'dir').sort((a,b)=>a.name.localeCompare(b.name));
     const lista = qs('listaCarpetas');
     const select = qs('selectCarpetas');
     lista.innerHTML = '';
     select.innerHTML = '';
 
-    // Placeholder simple
+    // placeholder simple (lo usaremos como etiqueta visible)
     const placeholder = document.createElement('option');
     placeholder.value = '';
     placeholder.textContent = '-- Seleccionar carpeta --';
     select.appendChild(placeholder);
 
-    // Si estamos en subcarpeta añadimos "Volver a INBOX"
+    // Si estamos dentro de una subcarpeta, actualizamos el texto del placeholder
+    if (parentPath && parentPath !== INBOX_PATH) {
+      // mostramos sólo el nombre final (ej. Proyecto1)
+      const displayName = parentPath.split('/').pop() || parentPath;
+      placeholder.textContent = displayName;
+      placeholder.value = parentPath; // opcional, no es necesario pero lo dejamos
+      // dejar seleccionado el placeholder (índice 0) para que ese texto sea visible
+      select.selectedIndex = 0;
+    } else {
+      // si estamos en INBOX dejamos el texto por defecto
+      placeholder.textContent = '-- Seleccionar carpeta --';
+      placeholder.value = '';
+      select.selectedIndex = 0;
+    }
+
+    // Volver a INBOX si estamos en subcarpeta (añadimos como segunda opción)
     if (parentPath !== INBOX_PATH) {
       const volverLi = document.createElement('li');
       volverLi.textContent = '⬅️ Volver a INBOX';
@@ -221,8 +231,7 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
         qs('carpetaSeleccionada').textContent = INBOX_PATH;
         listarCarpetas(INBOX_PATH);
         listarArchivos(INBOX_PATH);
-        // seleccionar placeholder (índice 0)
-        select.selectedIndex = 0;
+        select.selectedIndex = 0; // placeholder
       };
       lista.appendChild(volverLi);
 
@@ -232,7 +241,7 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
       select.appendChild(volverOpt);
     }
 
-    // Si no hay carpetas, añadimos opción informativa
+    // Agregamos las carpetas hijas
     if (!carpetas.length) {
       const noLi = document.createElement('li');
       noLi.className = 'small-muted';
@@ -244,18 +253,14 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
       opt.disabled = true;
       select.appendChild(opt);
     } else {
-      // agregamos carpetas
       carpetas.forEach(c => {
         const li = document.createElement('li');
         li.textContent = c.name;
         li.onclick = () => {
           qs('carpetaSeleccionada').textContent = c.path;
-          // buscamos la opción correspondiente y seleccionamos por índice (robusto)
-          const idx = findOptionIndex(select, c.path);
-          if (idx >= 0) {
-            select.selectedIndex = idx;
-          }
-          // navegamos
+          // Intentamos seleccionar la option correspondiente (si existe),
+          // si no, confiamos en que listarCarpetas(c.path) actualizará el placeholder.
+          select.value = c.path;
           listarCarpetas(c.path);
           listarArchivos(c.path);
         };
@@ -268,16 +273,7 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
       });
     }
 
-    // Si parentPath coincide con alguna option, seleccionarla
-    const idxParent = findOptionIndex(select, parentPath);
-    if (idxParent >= 0) {
-      select.selectedIndex = idxParent;
-    } else {
-      // dejamos el placeholder visible
-      select.selectedIndex = 0;
-    }
-
-    // Mostrar/ocultar según ancho
+    // mostrar/ocultar según ancho
     if (window.innerWidth < 900) {
       lista.style.display = 'none';
       select.style.display = 'block';
@@ -286,25 +282,23 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
       select.style.display = 'none';
     }
 
-    // manejador onchange (cuando el usuario usa el select directamente)
+    // onchange del select (cuando el usuario lo usa)
     select.onchange = () => {
       const selected = select.value;
-      console.log('selectCarpetas onchange ->', selected);
-      if (!selected) {
-        // placeholder
-        return;
-      }
+      if (!selected) return; // placeholder
       if (selected === INBOX_PATH) {
-        // volver
+        // volver a raíz
         qs('carpetaSeleccionada').textContent = INBOX_PATH;
         listarCarpetas(INBOX_PATH);
         listarArchivos(INBOX_PATH);
         select.selectedIndex = 0;
         return;
       }
-      // si seleccionó una carpeta desde el select, seleccionamos esa opción por índice para que se muestre en todos los navegadores
-      const idx = findOptionIndex(select, selected);
-      if (idx >= 0) select.selectedIndex = idx;
+      // seleccionar carpeta desde el select: actualizamos placeholder a su nombre
+      const name = (selected.split('/').pop() || selected);
+      placeholder.textContent = name;
+      placeholder.value = selected;
+      select.selectedIndex = 0; // mostramos el placeholder (que ahora contiene el nombre)
       qs('carpetaSeleccionada').textContent = selected;
       listarCarpetas(selected);
       listarArchivos(selected);
@@ -313,11 +307,9 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
   } catch (err) {
     console.error('listarCarpetas error:', err);
     qs('listaCarpetas').innerHTML = `<li class="small-muted">Error: ${err.message || err}</li>`;
-    // también reflejamos en el select
-    qs('selectCarpetas').innerHTML = '<option value="">-- Seleccionar carpeta --</option><option disabled>No disponible</option>';
+    qs('selectCarpetas').innerHTML = '<option value="">-- Seleccionar carpeta --</option><option disabled>Error</option>';
   }
 }
-
 // LISTAR ARCHIVOS (mismo patrón: logs + selección por índice)
 async function listarArchivos(carpetaPath) {
   try {
