@@ -235,6 +235,7 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
       opt.textContent = c.name;
       opt.value = c.path;
       select.appendChild(opt);
+      console.log(opt);
     });
 
     // Mostrar/ocultar según ancho
