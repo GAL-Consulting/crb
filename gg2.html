@@ -208,6 +208,8 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
         listarArchivos(INBOX_PATH);
         // dejamos el placeholder seleccionado
         select.value = '';
+        console.log('  qs('carpetaSeleccionada').textContent = INBOX_PATH; : ');
+        console.log(qs);
       };
       lista.appendChild(volverLi);
 
