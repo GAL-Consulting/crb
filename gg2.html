@@ -179,20 +179,6 @@
     }
 
     /* NAV / LISTING */
-// Útil: setea select a un value sólo si existe una option con ese value
-function setSelectValueIfExists(select, value) {
-  if (!select) return false;
-  const opt = Array.from(select.options).find(o => o.value === value);
-  if (opt) {
-    // desmarcamos cualquier opción selected y marcamos la encontrada
-    Array.from(select.options).forEach(o => o.selected = false);
-    opt.selected = true;
-    return true;
-  }
-  return false;
-}
-
-// LISTAR CARPETAS (robusta)
 // Versión simple: el select de carpetas se maneja igual que el select de archivos
 async function listarCarpetas(parentPath = INBOX_PATH) {
   try {
@@ -281,7 +267,6 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
     qs('listaCarpetas').innerHTML = `<li class="small-muted">Error: ${err.message || err}</li>`;
   }
 }
-
 // LISTAR ARCHIVOS (robusta)
 async function listarArchivos(carpetaPath) {
   try {
