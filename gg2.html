@@ -179,7 +179,20 @@
     }
 
     /* NAV / LISTING */
-// Reemplaza por esta versión actualizada
+// Útil: setea select a un value sólo si existe una option con ese value
+function setSelectValueIfExists(select, value) {
+  if (!select) return false;
+  const opt = Array.from(select.options).find(o => o.value === value);
+  if (opt) {
+    // desmarcamos cualquier opción selected y marcamos la encontrada
+    Array.from(select.options).forEach(o => o.selected = false);
+    opt.selected = true;
+    return true;
+  }
+  return false;
+}
+
+// LISTAR CARPETAS (robusta)
 async function listarCarpetas(parentPath = INBOX_PATH) {
   try {
     const res = await fetch(apiUrlFor(parentPath));
@@ -191,11 +204,13 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
     lista.innerHTML = '';
     select.innerHTML = '';
 
-    // Placeholder
+    // Aseguramos estilo Bootstrap para legibilidad en móvil
+    select.classList.add('form-select','form-select-sm');
+
+    // Placeholder (NO lo marcamos disabled para compatibilidad móvil)
     const placeholder = document.createElement('option');
     placeholder.value = '';
     placeholder.textContent = '-- Seleccionar carpeta --';
-    placeholder.disabled = true;
     placeholder.selected = true;
     select.appendChild(placeholder);
 
@@ -207,7 +222,8 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
         qs('carpetaSeleccionada').textContent = INBOX_PATH;
         listarCarpetas(INBOX_PATH);
         listarArchivos(INBOX_PATH);
-        select.value = ''; // dejar placeholder
+        // dejar placeholder visible
+        setSelectValueIfExists(select, '');
       };
       lista.appendChild(volverLi);
 
@@ -223,7 +239,7 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
       li.onclick = () => {
         qs('carpetaSeleccionada').textContent = c.path;
         // reflejamos la selección en el select (para móviles)
-        select.value = c.path;
+        setSelectValueIfExists(select, c.path);
         listarCarpetas(c.path);
         listarArchivos(c.path);
       };
@@ -237,8 +253,8 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
 
     // Si parentPath coincide con alguna opción, marcarla (útil cuando abrimos subcarpeta por código)
     if (parentPath) {
-      // intentamos seleccionar programáticamente la opción correspondiente
-      try { select.value = parentPath; } catch(e){ /* ignore */ }
+      // sólo seteamos si existe la option (evita dejar el select en blanco)
+      setSelectValueIfExists(select, parentPath);
     }
 
     if (window.innerWidth < 900) {
@@ -251,7 +267,10 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
 
     select.onchange = () => {
       const selected = select.value;
-      if (!selected) return; // placeholder
+      if (!selected) {
+        // placeholder elegido (o vuelto al estado inicial) -> no hacemos nada
+        return;
+      }
       qs('carpetaSeleccionada').textContent = selected;
       listarCarpetas(selected);
       listarArchivos(selected);
@@ -263,7 +282,7 @@ async function listarCarpetas(parentPath = INBOX_PATH) {
   }
 }
 
-// Reemplaza por esta versión actualizada
+// LISTAR ARCHIVOS (robusta)
 async function listarArchivos(carpetaPath) {
   try {
     const res = await fetch(apiUrlFor(carpetaPath));
@@ -275,11 +294,12 @@ async function listarArchivos(carpetaPath) {
     lista.innerHTML = '';
     select.innerHTML = '';
 
+    select.classList.add('form-select','form-select-sm');
+
     // Placeholder
     const placeholder = document.createElement('option');
     placeholder.value = '';
     placeholder.textContent = '-- Seleccionar archivo --';
-    placeholder.disabled = true;
     placeholder.selected = true;
     select.appendChild(placeholder);
 
@@ -289,7 +309,7 @@ async function listarArchivos(carpetaPath) {
         li.textContent = f.name;
         li.onclick = () => {
           // reflejamos la selección en el select para móviles
-          select.value = f.path;
+          setSelectValueIfExists(select, f.path);
           mostrarArchivo(f);
         };
         lista.appendChild(li);
@@ -306,9 +326,6 @@ async function listarArchivos(carpetaPath) {
       opt.disabled = true;
       select.appendChild(opt);
     }
-
-    // Si carpetaPath corresponde, no dejamos siempre el placeholder: seleccionamos carpetaPath si hay un archivo homónimo (opcional)
-    // (no hacemos nada aquí; el usuario debe elegir archivo)
 
     if (window.innerWidth < 900) {
       lista.style.display = 'none';
@@ -330,6 +347,7 @@ async function listarArchivos(carpetaPath) {
     qs('listaDocs').innerHTML = `<li class="small-muted">Error: ${err.message || err}</li>`;
   }
 }
+
 
     /* VISOR: fetch + objectURL con mapeo MIME */
     async function mostrarArchivo(f) {
