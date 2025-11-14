@@ -86,41 +86,32 @@
           </div>
 
           <div class="mb-2">
-            <label for="proyecto">Documento</label>
+            <label for="proyecto">Documentación</label>
             <select id="proyecto" class="form-select form-select-sm"></select>
           </div>
 
           <div class="mb-2">
-            <label for="categoria">Categoría</label>
+            <label for="categoria">Titular</label>
             <select id="categoria" class="form-select form-select-sm"></select>
           </div>
 
           <div class="mb-2">
-            <label for="emisor">Emisor/Receptor</label>
-            <select id="emisor" class="form-select form-select-sm"></select>
-          </div>
+            <label for="fechaEmision">Fecha de emisión</label>
+            <input type="date" id="fechaEmision" class="form-control form-control-sm">
+           </div>        
 
+          
           <div class="mb-2">
-            <label for="propiedad">Propiedad</label>
-            <select id="propiedad" class="form-select form-select-sm"></select>
-          </div>
-
-          <div class="mb-2">
-            <label>Descripción</label>
+            <label>Observaciones</label>
             <textarea id="comentarios" rows="3" class="form-control form-control-sm"></textarea>
           </div>
 
-          <div class="mb-3">
-            <label for="asunto">Asunto</label>
-            <input id="asunto" class="form-control form-control-sm" />
-          </div>
-
           <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-dark btn-sm">Guardar registro (descargar CSV)</button>
-            <button id="btnCopy" type="button" class="btn btn-outline-secondary btn-ghost btn-sm">Copiar línea (CSV)</button>
+            <button type="submit" class="btn btn-dark btn-sm">Guardar Documento Seleccionado</button>
+            <button id="btnCopy" type="button" class="btn btn-outline-secondary btn-ghost btn-sm">Observar/Rechazar Documento</button>
           </div>
 
-          <div class="small-muted mt-2">Nota: los registros se guardan localmente y se descargan como CSV. GitHub público = sólo lectura.</div>
+          <div class="small-muted mt-2">Nota: La aceptación del documento no implica la autorización de ingreso. La autorización podrá ser emitida una vez cargada la totalidad de la documentación requerida.</div>
         </form>
       </div>
     </main>
