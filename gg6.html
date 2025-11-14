@@ -78,7 +78,7 @@
 
       <!-- derecha -->
       <div class="col-right">
-      <div class="h-title">Registro del archivo</div>
+        <div class="h-title">Registro del archivo</div>
         <form id="formRegistro">
           <div class="mb-2">
             <label class="form-label">Archivo seleccionado</label>
@@ -86,32 +86,41 @@
           </div>
 
           <div class="mb-2">
-            <label for="proyecto">Documentación</label>
+            <label for="proyecto">Proyecto</label>
             <select id="proyecto" class="form-select form-select-sm"></select>
           </div>
 
           <div class="mb-2">
-            <label for="categoria">Titular</label>
+            <label for="categoria">Categoría</label>
             <select id="categoria" class="form-select form-select-sm"></select>
           </div>
 
           <div class="mb-2">
-            <label for="fechaEmision">Fecha de emisión</label>
-            <input type="date" id="fechaEmision" class="form-control form-control-sm">
-           </div>        
+            <label for="emisor">Emisor/Receptor</label>
+            <select id="emisor" class="form-select form-select-sm"></select>
+          </div>
 
-          
           <div class="mb-2">
-            <label>Observaciones</label>
+            <label for="propiedad">Propiedad</label>
+            <select id="propiedad" class="form-select form-select-sm"></select>
+          </div>
+
+          <div class="mb-2">
+            <label>Descripción</label>
             <textarea id="comentarios" rows="3" class="form-control form-control-sm"></textarea>
           </div>
 
-          <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-dark btn-sm">Guardar Documento Seleccionado</button>
-            <button id="btnCopy" type="button" class="btn btn-outline-secondary btn-ghost btn-sm">Observar/Rechazar Documento</button>
+          <div class="mb-3">
+            <label for="asunto">Asunto</label>
+            <input id="asunto" class="form-control form-control-sm" />
           </div>
 
-          <div class="small-muted mt-2">Nota: La aceptación del documento no implica la autorización de ingreso. La autorización podrá ser emitida una vez cargada la totalidad de la documentación requerida.</div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-dark btn-sm">Guardar registro (descargar CSV)</button>
+            <button id="btnCopy" type="button" class="btn btn-outline-secondary btn-ghost btn-sm">Copiar línea (CSV)</button>
+          </div>
+
+          <div class="small-muted mt-2">Nota: los registros se guardan localmente y se descargan como CSV. GitHub público = sólo lectura.</div>
         </form>
       </div>
     </main>
