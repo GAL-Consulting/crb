@@ -582,16 +582,16 @@ async function mostrarArchivo(f) {
       const downloadUrl = qs('archivoSeleccionado').dataset.downloadUrl || '';
       const proyecto = qs('proyecto').value || '';
       const categoria = qs('categoria').value || '';
-      const emisor = qs('emisor').value || '';
+      //const emisor = qs('emisor').value || '';
       const propiedad = qs('propiedad').value || '';
       const comentarios = qs('comentarios').value || '';
       const asunto = qs('asunto').value || '';
       if (!archivo || archivo === '- ninguno -' || !filePath) { alert('Seleccioná un archivo antes de guardar.'); return; }
       if (!proyecto) { alert('Completá el campo Proyecto.'); return; }
 
-      const fila = [ new Date().toISOString(), archivo, filePath, downloadUrl, proyecto, categoria, emisor, propiedad, asunto, comentarios ];
-      descargarCSV([['Fecha','Nombre','Path','DownloadURL','Proyecto','Categoria','Emisor','Propiedad','Asunto','Comentarios'], fila]);
-      alert('Registro preparado y descargado como CSV.');
+      //const fila = [ new Date().toISOString(), archivo, filePath, downloadUrl, proyecto, categoria, emisor, propiedad, asunto, comentarios ];
+     // descargarCSV([['Fecha','Nombre','Path','DownloadURL','Proyecto','Categoria','Emisor','Propiedad','Asunto','Comentarios'], fila]);
+    //  alert('Registro preparado y descargado como CSV.');
 
       // limpiar
       qs('archivoSeleccionado').textContent = '- ninguno -';
@@ -599,7 +599,7 @@ async function mostrarArchivo(f) {
       qs('archivoSeleccionado').dataset.downloadUrl = '';
       qs('proyecto').value = '';
       qs('categoria').value = '';
-      qs('emisor').value = '';
+      //qs('emisor').value = '';
       qs('propiedad').value = '';
       qs('comentarios').value = '';
       qs('asunto').value = '';
@@ -612,11 +612,12 @@ async function mostrarArchivo(f) {
       const downloadUrl = qs('archivoSeleccionado').dataset.downloadUrl || '';
       const proyecto = qs('proyecto').value || '';
       const categoria = qs('categoria').value || '';
-      const emisor = qs('emisor').value || '';
+     // const emisor = qs('emisor').value || '';
       const propiedad = qs('propiedad').value || '';
       const comentarios = qs('comentarios').value || '';
       const asunto = qs('asunto').value || '';
-      const fila = [new Date().toISOString(), archivo, filePath, downloadUrl, proyecto, categoria, emisor, propiedad, asunto, comentarios];
+   // const fila = [new Date().toISOString(), archivo, filePath, downloadUrl, proyecto, categoria, emisor, propiedad, asunto, comentarios];
+      const fila = [new Date().toISOString(), archivo, filePath, downloadUrl, proyecto, categoria, comentarios];
       const linea = fila.map(csvEscape).join(',');
       navigator.clipboard?.writeText(linea).then(() => {
         alert('Registro copiado al portapapeles (formato CSV, una línea).');
@@ -648,8 +649,8 @@ async function mostrarArchivo(f) {
     }
     llenarSelect('proyecto', ['Proyecto A','Proyecto B']);
     llenarSelect('categoria',['Administrativo','Técnico']);
-    llenarSelect('emisor', ['Proveedor','Cliente']);
-    llenarSelect('propiedad', ['Empresa','Cliente']);
+   // llenarSelect('emisor', ['Proveedor','Cliente']);
+   // llenarSelect('propiedad', ['Empresa','Cliente']);
 
     /* INICIALIZACIÓN */
     (async function init() {
