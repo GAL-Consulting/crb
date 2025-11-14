@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gestor Documental — GitHub INBOX</title>
+
+  <!-- Bootstrap y Icons (mismo look que tu otro ejemplo) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+  <style>
+    /* Estilo base tomado del archivo ejemplo */
+    body{padding:24px;background:#f7fafc;font-family:Inter,system-ui,Arial;color:#0f172a}
+    .small-muted{font-size:0.85rem;color:#6b7280}
+    .btn-ghost{border:1px solid #e6edf3;background:transparent;color:#111827}
+    .table-responsive{max-height:520px;overflow:auto}
+    .required-badge{background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:6px;font-size:12px}
+    .optional-badge{background:#e6f0ff;color:#0b5fff;padding:2px 6px;border-radius:6px;font-size:12px}
+
+    /* Ajustes del layout del gestor (manteniendo tu estructura original) */
+    #app { display:flex; flex-direction:column; }
+    main { display:grid; grid-template-columns:25% 50% 25%; grid-gap:12px; padding:12px; box-sizing:border-box; }
+    .col-left { display:flex; flex-direction:column; gap:12px; }
+    .carpetas, .archivos, .col-right { background:#fff; border-radius:10px; padding:12px; box-shadow: 0 6px 18px rgba(12,26,75,0.06); }
+    .carpetas h3, .archivos h3 { margin-top:0; margin-bottom:8px; font-size:0.85rem; color:#0f172a; text-transform:uppercase; letter-spacing:0.6px; }
+    .carpetas ul, .archivos ul { list-style:none; margin:0; padding:0; max-height:46vh; overflow:auto; }
+    .carpetas li, .archivos li { padding:8px 10px; border-radius:8px; cursor:pointer; transition:all .12s; display:flex; align-items:center; gap:8px; color:#0f172a; }
+    .carpetas li:hover, .archivos li:hover { background:#eef6ff; transform:translateX(3px); color:#0b5fff; }
+    .carpetas li::before { content:"📁"; margin-right:6px; }
+    .archivos li::before { content:"📄"; margin-right:6px; }
+    .col-center { background:#fff; border-radius:10px; padding:8px; display:flex; align-items:center; justify-content:center; box-shadow: 0 6px 18px rgba(12,26,75,0.06); min-height:60vh; }
+    .col-center iframe { width:100%; height:100%; min-height:420px; border-radius:8px; border:none; }
+    .col-right label { font-weight:600; font-size:0.9rem; }
+    .col-right input, .col-right select, .col-right textarea { border-radius:8px; border:1px solid #e6edf3; padding:8px; }
+    .h-title { font-size:1.05rem; font-weight:600; margin-bottom:4px; }
+    .container-custom { max-width:1100px; margin:0 auto; }
+    @media (max-width:900px) {
+      main { grid-template-columns:1fr; }
+      .carpetas ul, .archivos ul { display:none; }
+      .carpetas select, .archivos select { display:block; width:100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-custom">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h1 class="h5 mb-0">📁 Gestor Documental</h1>
+        <div class="small-muted">Listado público desde la carpeta <code>INBOX</code> del repositorio GitHub.</div>
+      </div>
+      <div>
+        <span class="small-muted">Interfaz pública — sin login</span>
+      </div>
+    </div>
+
+    <main>
+      <!-- izquierda -->
+      <div class="col-left">
+        <div class="carpetas">
+          <h3>Carpetas</h3>
+          <ul id="listaCarpetas"></ul>
+          <select id="selectCarpetas" style="display:none;"></select>
+        </div>
+
+        <div class="archivos">
+          <h3>Archivos</h3>
+          <div id="carpetaSeleccionada" class="small-muted mb-2">Raíz / INBOX</div>
+          <ul id="listaDocs"></ul>
+          <select id="selectArchivos" style="display:none;"></select>
+        </div>
+      </div>
+
+      <!-- centro -->
+      <div class="col-center">
+        <iframe id="visor" src=""></iframe>
+      </div>
+
+      <!-- derecha -->
+      <div class="col-right">
+      <div class="h-title">Registro del archivo</div>
+        <form id="formRegistro">
+          <div class="mb-2">
+            <label class="form-label">Archivo seleccionado</label>
+            <div id="archivoSeleccionado" class="small-muted">- ninguno -</div>
+          </div>
+
+          <div class="mb-2">
+            <label for="proyecto">Documentación</label>
+            <select id="proyecto" class="form-select form-select-sm"></select>
+          </div>
+
+          <div class="mb-2">
+            <label for="categoria">Titular</label>
+            <select id="categoria" class="form-select form-select-sm"></select>
+          </div>
+
+          <div class="mb-2">
+            <label for="fechaEmision">Fecha de emisión</label>
+            <input type="date" id="fechaEmision" class="form-control form-control-sm">
+           </div>        
+
+          
+          <div class="mb-2">
+            <label>Observaciones</label>
+            <textarea id="comentarios" rows="3" class="form-control form-control-sm"></textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-dark btn-sm">Guardar Documento Seleccionado</button>
+            <button id="btnCopy" type="button" class="btn btn-outline-secondary btn-ghost btn-sm">Observar/Rechazar Documento</button>
+          </div>
+
+          <div class="small-muted mt-2">Nota: La aceptación del documento no implica la autorización de ingreso. La autorización podrá ser emitida una vez cargada la totalidad de la documentación requerida.</div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    /* ---------- CONFIGURACIÓN ---------- */
+    const DEFAULT_BRANCH = 'main';
+    const INBOX_PATH = 'INBOX';
+    let GITHUB_OWNER = null;
+    let GITHUB_REPO = null;
+    let lastObjectUrl = null; // UNA sola declaración
+
+    /* UTIL */
+    function qs(id){ return document.getElementById(id); }
+
+    function intentarDetectarRepo() {
+      try {
+        const host = location.hostname;
+        const path = location.pathname;
+        if (host.endsWith('github.io')) {
+          const usuario = host.split('.')[0];
+          const partes = path.split('/').filter(Boolean);
+          if (partes.length >= 1) {
+            GITHUB_OWNER = usuario;
+            GITHUB_REPO = partes[0];
+            return true;
+          }
+        }
+      } catch(e){}
+      return false;
+    }
+
+    function solicitarRepoAlUsuario() {
+      if (!GITHUB_OWNER || !GITHUB_REPO) {
+        const ingreso = sessionStorage.getItem('gh_repo');
+        if (ingreso) {
+          const [o,r] = ingreso.split('/');
+          if (o && r) { GITHUB_OWNER = o; GITHUB_REPO = r; return; }
+        }
+        const respuesta = prompt('No pude detectar tu repo automáticamente. Ingresá owner/repo (por ejemplo: usuario/repo). Debe ser público:', '');
+        if (respuesta) {
+          const [o,r] = respuesta.trim().split('/');
+          if (o && r) {
+            GITHUB_OWNER = o; GITHUB_REPO = r;
+            sessionStorage.setItem('gh_repo', `${o}/${r}`);
+            return;
+          }
+        }
+        alert('Para funcionar, necesitás indicar el repo público. Recargá la página e ingresá owner/repo cuando se solicite.');
+      }
+    }
+
+    function apiUrlFor(path) {
+      return `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(DEFAULT_BRANCH)}`;
+    }
+
+    /* NAV / LISTING */
+// Versión simple: el select de carpetas se maneja igual que el select de archivos
+// Reemplazar listarCarpetas y listarArchivos por estas versiones (con logs y selección por index)
+
+// UTIL: busca índice de option por value
+function findOptionIndex(select, value) {
+  const opts = Array.from(select.options);
+  return opts.findIndex(o => o.value === value);
+}
+
+// LISTAR CARPETAS (con logs y selección robusta)
+// Versión corregida: el placeholder muestra la carpeta actual cuando navegás dentro de una carpeta
+async function listarCarpetas(parentPath = INBOX_PATH) {
+  try {
+    console.log('listarCarpetas -> parentPath:', parentPath);
+    const res = await fetch(apiUrlFor(parentPath));
+    if (!res.ok) throw new Error('Error al consultar GitHub: ' + res.status + ' ' + res.statusText);
+    const items = await res.json();
+    const carpetas = (items || []).filter(i => i.type === 'dir').sort((a,b)=>a.name.localeCompare(b.name));
+    const lista = qs('listaCarpetas');
+    const select = qs('selectCarpetas');
+    lista.innerHTML = '';
+    select.innerHTML = '';
+
+    // placeholder simple (lo usaremos como etiqueta visible)
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '-- Seleccionar carpeta --';
+    select.appendChild(placeholder);
+
+    // Si estamos dentro de una subcarpeta, actualizamos el texto del placeholder
+    if (parentPath && parentPath !== INBOX_PATH) {
+      // mostramos sólo el nombre final (ej. Proyecto1)
+      const displayName = parentPath.split('/').pop() || parentPath;
+      placeholder.textContent = displayName;
+      placeholder.value = parentPath; // opcional, no es necesario pero lo dejamos
+      // dejar seleccionado el placeholder (índice 0) para que ese texto sea visible
+      select.selectedIndex = 0;
+    } else {
+      // si estamos en INBOX dejamos el texto por defecto
+      placeholder.textContent = '-- Seleccionar carpeta --';
+      placeholder.value = '';
+      select.selectedIndex = 0;
+    }
+
+    // Volver a INBOX si estamos en subcarpeta (añadimos como segunda opción)
+    if (parentPath !== INBOX_PATH) {
+      const volverLi = document.createElement('li');
+      volverLi.textContent = '⬅️ Volver a INBOX';
+      volverLi.onclick = () => {
+        qs('carpetaSeleccionada').textContent = INBOX_PATH;
+        listarCarpetas(INBOX_PATH);
+        listarArchivos(INBOX_PATH);
+        select.selectedIndex = 0; // placeholder
+      };
+      lista.appendChild(volverLi);
+
+      const volverOpt = document.createElement('option');
+      volverOpt.textContent = '⬅️ Volver a INBOX';
+      volverOpt.value = INBOX_PATH;
+      select.appendChild(volverOpt);
+    }
+
+    // Agregamos las carpetas hijas
+    if (!carpetas.length) {
+      const noLi = document.createElement('li');
+      noLi.className = 'small-muted';
+      noLi.textContent = 'No hay subcarpetas.';
+      lista.appendChild(noLi);
+
+      const opt = document.createElement('option');
+      opt.textContent = 'No hay subcarpetas';
+      opt.disabled = true;
+      select.appendChild(opt);
+    } else {
+      carpetas.forEach(c => {
+        const li = document.createElement('li');
+        li.textContent = c.name;
+        li.onclick = () => {
+          qs('carpetaSeleccionada').textContent = c.path;
+          // Intentamos seleccionar la option correspondiente (si existe),
+          // si no, confiamos en que listarCarpetas(c.path) actualizará el placeholder.
+          select.value = c.path;
+          listarCarpetas(c.path);
+          listarArchivos(c.path);
+        };
+        lista.appendChild(li);
+
+        const opt = document.createElement('option');
+        opt.textContent = c.name;
+        opt.value = c.path;
+        select.appendChild(opt);
+      });
+    }
+
+    // mostrar/ocultar según ancho
+    if (window.innerWidth < 900) {
+      lista.style.display = 'none';
+      select.style.display = 'block';
+    } else {
+      lista.style.display = 'block';
+      select.style.display = 'none';
+    }
+
+    // onchange del select (cuando el usuario lo usa)
+    select.onchange = () => {
+      const selected = select.value;
+      if (!selected) return; // placeholder
+      if (selected === INBOX_PATH) {
+        // volver a raíz
+        qs('carpetaSeleccionada').textContent = INBOX_PATH;
+        listarCarpetas(INBOX_PATH);
+        listarArchivos(INBOX_PATH);
+        select.selectedIndex = 0;
+        return;
+      }
+      // seleccionar carpeta desde el select: actualizamos placeholder a su nombre
+      const name = (selected.split('/').pop() || selected);
+      placeholder.textContent = name;
+      placeholder.value = selected;
+      select.selectedIndex = 0; // mostramos el placeholder (que ahora contiene el nombre)
+      qs('carpetaSeleccionada').textContent = selected;
+      listarCarpetas(selected);
+      listarArchivos(selected);
+    };
+
+  } catch (err) {
+    console.error('listarCarpetas error:', err);
+    qs('listaCarpetas').innerHTML = `<li class="small-muted">Error: ${err.message || err}</li>`;
+    qs('selectCarpetas').innerHTML = '<option value="">-- Seleccionar carpeta --</option><option disabled>Error</option>';
+  }
+}
+// LISTAR ARCHIVOS (mismo patrón: logs + selección por índice)
+async function listarArchivos(carpetaPath) {
+  try {
+    console.log('listarArchivos ->', carpetaPath);
+    const res = await fetch(apiUrlFor(carpetaPath));
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>'');
+      throw new Error('Error al consultar GitHub: ' + res.status + ' ' + res.statusText + ' ' + txt);
+    }
+    const items = await res.json();
+    console.log('GitHub items (files) for', carpetaPath, items);
+
+    const files = (Array.isArray(items) ? items : []).filter(i => i.type === 'file').sort((a,b)=>a.name.localeCompare(b.name));
+    const lista = qs('listaDocs');
+    const select = qs('selectArchivos');
+    lista.innerHTML = '';
+    select.innerHTML = '';
+
+    // placeholder
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '-- Seleccionar archivo --';
+    select.appendChild(placeholder);
+
+    if (!files.length) {
+      lista.innerHTML = '<li class="small-muted">No hay archivos.</li>';
+      const opt = document.createElement('option');
+      opt.textContent = 'No hay archivos';
+      opt.disabled = true;
+      select.appendChild(opt);
+    } else {
+      files.forEach(f => {
+        const li = document.createElement('li');
+        li.textContent = f.name;
+        li.onclick = () => {
+          // seleccionar en select por indice
+          const idx = findOptionIndex(select, f.path);
+          if (idx >= 0) select.selectedIndex = idx;
+          mostrarArchivo(f);
+        };
+        lista.appendChild(li);
+
+        const opt = document.createElement('option');
+        opt.textContent = f.name;
+        opt.value = f.path;
+        select.appendChild(opt);
+      });
+    }
+
+    // seleccionar parent si corresponde (no obligatorio)
+    const idxParent = findOptionIndex(select, carpetaPath);
+    if (idxParent >= 0) select.selectedIndex = idxParent;
+    else select.selectedIndex = 0;
+
+    if (window.innerWidth < 900) {
+      lista.style.display = 'none';
+      select.style.display = 'block';
+    } else {
+      lista.style.display = 'block';
+      select.style.display = 'none';
+    }
+
+    select.onchange = () => {
+      const path = select.value;
+      console.log('selectArchivos onchange ->', path);
+      if (!path) return;
+      const file = files.find(f => f.path === path);
+      if (file) {
+        // aseguramos que sea visible
+        const idx = findOptionIndex(select, path);
+        if (idx >= 0) select.selectedIndex = idx;
+        mostrarArchivo(file);
+      }
+    };
+
+  } catch (err) {
+    console.error('listarArchivos error:', err);
+    qs('listaDocs').innerHTML = `<li class="small-muted">Error: ${err.message || err}</li>`;
+    qs('selectArchivos').innerHTML = '<option value="">-- Seleccionar archivo --</option><option disabled>Error</option>';
+  }
+}
+
+
+    /* VISOR: fetch + objectURL con mapeo MIME */
+async function mostrarArchivo(f) {
+  const visor = qs('visor');
+
+  // Revocamos object URL anterior si existía
+  if (lastObjectUrl) {
+    try { URL.revokeObjectURL(lastObjectUrl); } catch(e){ /* ignore */ }
+    lastObjectUrl = null;
+  }
+
+  // limpiamos src/srcdoc actuales
+  visor.removeAttribute('src');
+  visor.removeAttribute('srcdoc');
+
+  // Actualizamos UI (archivo seleccionado)
+  qs('archivoSeleccionado').textContent = f.name;
+  qs('archivoSeleccionado').dataset.filePath = f.path || '';
+  qs('archivoSeleccionado').dataset.downloadUrl = f.download_url || '';
+
+  // Extensión y mapeo MIME
+  const ext = (f.name.split('.').pop() || '').toLowerCase();
+  const mimeMap = {
+    'pdf': 'application/pdf','txt':'text/plain','md':'text/markdown','csv':'text/csv','json':'application/json',
+    'js':'application/javascript','css':'text/css','html':'text/html','htm':'text/html','jpg':'image/jpeg',
+    'jpeg':'image/jpeg','png':'image/png','gif':'image/gif','svg':'image/svg+xml','webp':'image/webp','bmp':'image/bmp','xml':'application/xml'
+  };
+
+  const tiposPdf = ['pdf'];
+  const tiposImagen = ['jpg','jpeg','png','gif','svg','webp','bmp'];
+  const tiposTexto = ['txt','md','csv','json','js','css','html','htm','xml'];
+
+  if (!f.download_url) {
+    visor.srcdoc = `<div style="padding:20px;text-align:center;" class="small-muted">No se encontró URL de descarga para este archivo.</div>`;
+    return;
+  }
+
+  try {
+    // PDFs e imágenes: hacemos fetch -> blob -> objectURL (forzando MIME si hace falta)
+    if (tiposPdf.includes(ext) || tiposImagen.includes(ext)) {
+      const resp = await fetch(f.download_url);
+      if (!resp.ok) throw new Error('Error al descargar archivo: ' + resp.status);
+      const blob = await resp.blob();
+
+      const mimeForExt = mimeMap[ext] || (blob.type || 'application/octet-stream');
+      const normalizedBlob = (blob.type === mimeForExt) ? blob : new Blob([blob], { type: mimeForExt });
+
+      const objectUrl = URL.createObjectURL(normalizedBlob);
+      lastObjectUrl = objectUrl;
+
+      // PDF -> usar embed + controles (mejor compatibilidad móvil)
+      if (tiposPdf.includes(ext)) {
+        const embeddedHtml = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>
+      html,body{height:100%;margin:0;background:#fff}
+      .wrap{display:flex;flex-direction:column;height:100%}
+      .viewer{flex:1;min-height:0}
+      .controls{padding:8px;background:#f7fafc;border-top:1px solid #e6edf3;display:flex;gap:8px;align-items:center}
+      .btn{display:inline-block;padding:.45rem .7rem;border-radius:6px;border:1px solid #e6edf3;background:#fff;color:#0b5fff;text-decoration:none;font-weight:600}
+      .hint{color:#6b7280;font-size:.85rem}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="viewer">
+        <embed src="${objectUrl}" type="application/pdf" width="100%" height="100%"/>
+      </div>
+      <div class="controls">
+        <a class="btn" href="${objectUrl}" target="_blank" rel="noopener">Abrir en nueva pestaña</a>
+        <a class="btn" href="${objectUrl}" download="${f.name}">Descargar</a>
+        <div class="hint">Si la vista previa no funciona tocá "Abrir en nueva pestaña".</div>
+      </div>
+    </div>
+  </body>
+</html>`;
+        visor.srcdoc = embeddedHtml;
+        return;
+      }
+
+      // Imagen -> incrustar HTML con <img> usando objectURL (evita dependencia del server headers)
+      visor.srcdoc = `
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+  <body style="margin:0;display:flex;align-items:center;justify-content:center;height:100%;background:#fff;">
+    <img src="${objectUrl}" alt="${f.name}" style="max-width:100%;max-height:100%;border-radius:6px;"/>
+  </body>
+</html>`;
+      return;
+    }
+
+    // Archivos de texto: mostramos el contenido como texto en srcdoc
+    if (tiposTexto.includes(ext)) {
+      const resp = await fetch(f.download_url);
+      if (!resp.ok) throw new Error('Error al descargar archivo: ' + resp.status);
+      const txt = await resp.text();
+      const esc = s => String(s||'').replaceAll('<','&lt;').replaceAll('>','&gt;');
+      visor.srcdoc = `<div style="padding:12px; font-family:monospace; white-space:pre-wrap; overflow:auto; height:100%;">${esc(txt)}</div>`;
+      return;
+    }
+
+    // Otros tipos: fallback -> intentar mostrar con objectURL y controles para abrir/descargar
+    const respOther = await fetch(f.download_url);
+    if (!respOther.ok) throw new Error('Error al descargar archivo: ' + respOther.status);
+    const blobOther = await respOther.blob();
+    const mimeForExtOther = mimeMap[ext] || (blobOther.type || 'application/octet-stream');
+    const normalizedBlobOther = (blobOther.type === mimeForExtOther) ? blobOther : new Blob([blobOther], { type: mimeForExtOther });
+
+    const objectUrlOther = URL.createObjectURL(normalizedBlobOther);
+    lastObjectUrl = objectUrlOther;
+
+    const embeddedFallback = `<!doctype html>
+<html>
+  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>
+      html,body{height:100%;margin:0}
+      .wrap{display:flex;flex-direction:column;height:100%}
+      .info{padding:18px;font-family:system-ui,Arial;color:#0f172a;}
+      .controls{padding:8px;background:#f7fafc;border-top:1px solid #e6edf3;display:flex;gap:8px;align-items:center}
+      .btn{padding:.45rem .7rem;border-radius:6px;border:1px solid #e6edf3;background:#fff;color:#0b5fff;text-decoration:none;font-weight:600}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="info">
+        <p><strong>Vista previa no disponible</strong></p>
+        <p class="small">Nombre: ${f.name}</p>
+      </div>
+      <div class="controls">
+        <a class="btn" href="${objectUrlOther}" target="_blank" rel="noopener">Abrir en nueva pestaña</a>
+        <a class="btn" href="${objectUrlOther}" download="${f.name}">Descargar</a>
+      </div>
+    </div>
+  </body>
+</html>`;
+    visor.srcdoc = embeddedFallback;
+    return;
+
+  } catch (err) {
+    console.error('mostrarArchivo - fallback:', err);
+    const link = f.download_url ? `<a href="${f.download_url}" target="_blank" style="font-weight:bold;color:#0b5fff;">Abrir/Descargar archivo en nueva pestaña</a>` : '';
+    visor.srcdoc = `
+      <div style="padding:20px; text-align:center; font-family:sans-serif;">
+        <p><strong>No se pudo mostrar la vista previa.</strong></p>
+        <p>Nombre: ${f.name}</p>
+        <p class="small-muted">Error: ${err.message || err}</p>
+        ${link}
+      </div>
+    `;
+  }
+}
+
+    /* FORM: CSV local */
+    function csvEscape(v) {
+      if (v === null || v === undefined) return '';
+      const s = String(v);
+      if (/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+      return s;
+    }
+
+    function descargarCSV(filas, filename = 'registros.csv') {
+      const csv = filas.map(r => r.map(csvEscape).join(',')).join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    qs('formRegistro').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const archivo = qs('archivoSeleccionado').textContent || '';
+      const filePath = qs('archivoSeleccionado').dataset.filePath || '';
+      const downloadUrl = qs('archivoSeleccionado').dataset.downloadUrl || '';
+      const proyecto = qs('proyecto').value || '';
+      const categoria = qs('categoria').value || '';
+      const emisor = qs('emisor').value || '';
+      const propiedad = qs('propiedad').value || '';
+      const comentarios = qs('comentarios').value || '';
+      const asunto = qs('asunto').value || '';
+      if (!archivo || archivo === '- ninguno -' || !filePath) { alert('Seleccioná un archivo antes de guardar.'); return; }
+      if (!proyecto) { alert('Completá el campo Proyecto.'); return; }
+
+      const fila = [ new Date().toISOString(), archivo, filePath, downloadUrl, proyecto, categoria, emisor, propiedad, asunto, comentarios ];
+      descargarCSV([['Fecha','Nombre','Path','DownloadURL','Proyecto','Categoria','Emisor','Propiedad','Asunto','Comentarios'], fila]);
+      alert('Registro preparado y descargado como CSV.');
+
+      // limpiar
+      qs('archivoSeleccionado').textContent = '- ninguno -';
+      qs('archivoSeleccionado').dataset.filePath = '';
+      qs('archivoSeleccionado').dataset.downloadUrl = '';
+      qs('proyecto').value = '';
+      qs('categoria').value = '';
+      qs('emisor').value = '';
+      qs('propiedad').value = '';
+      qs('comentarios').value = '';
+      qs('asunto').value = '';
+      qs('visor').srcdoc = '';
+    });
+
+    qs('btnCopy').addEventListener('click', () => {
+      const archivo = qs('archivoSeleccionado').textContent || '';
+      const filePath = qs('archivoSeleccionado').dataset.filePath || '';
+      const downloadUrl = qs('archivoSeleccionado').dataset.downloadUrl || '';
+      const proyecto = qs('proyecto').value || '';
+      const categoria = qs('categoria').value || '';
+      const emisor = qs('emisor').value || '';
+      const propiedad = qs('propiedad').value || '';
+      const comentarios = qs('comentarios').value || '';
+      const asunto = qs('asunto').value || '';
+      const fila = [new Date().toISOString(), archivo, filePath, downloadUrl, proyecto, categoria, emisor, propiedad, asunto, comentarios];
+      const linea = fila.map(csvEscape).join(',');
+      navigator.clipboard?.writeText(linea).then(() => {
+        alert('Registro copiado al portapapeles (formato CSV, una línea).');
+      }).catch(()=> {
+        alert('No pude copiar al portapapeles. Podés descargar el CSV con "Guardar registro".');
+      });
+    });
+
+    /* Selects iniciales */
+    function llenarSelect(id, opciones) {
+      const select = qs(id);
+      select.innerHTML = '<option value="">-- Seleccionar --</option>';
+      opciones.forEach(op => {
+        const o = document.createElement('option'); o.value = op; o.textContent = op; select.appendChild(o);
+      });
+      const nuevo = document.createElement('option'); nuevo.value='__nuevo__'; nuevo.textContent='➕ Agregar nuevo...'; select.appendChild(nuevo);
+      select.addEventListener('change', () => {
+        if (select.value === '__nuevo__') {
+          const val = prompt('Ingrese nuevo valor para ' + id);
+          if (val) {
+            const opcionesExistentes = Array.from(select.options).filter(o => o.value!=='__nuevo__').map(o => o.value).concat(val).sort((a,b)=>a.localeCompare(b));
+            select.innerHTML = '<option value="">-- Seleccionar --</option>';
+            opcionesExistentes.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; select.appendChild(o); });
+            select.appendChild(nuevo);
+            select.value = val;
+          } else select.value = '';
+        }
+      });
+    }
+    llenarSelect('proyecto', ['Proyecto A','Proyecto B']);
+    llenarSelect('categoria',['Administrativo','Técnico']);
+    llenarSelect('emisor', ['Proveedor','Cliente']);
+    llenarSelect('propiedad', ['Empresa','Cliente']);
+
+    /* INICIALIZACIÓN */
+    (async function init() {
+      if (!intentarDetectarRepo()) {
+        solicitarRepoAlUsuario();
+      } else {
+        if (GITHUB_OWNER && GITHUB_REPO) sessionStorage.setItem('gh_repo', `${GITHUB_OWNER}/${GITHUB_REPO}`);
+      }
+
+      if (!GITHUB_OWNER || !GITHUB_REPO) {
+        qs('listaCarpetas').innerHTML = '<li class="small-muted">No hay repo configurado. Recargá e ingresá owner/repo cuando se solicite.</li>';
+        return;
+      }
+
+      qs('carpetaSeleccionada').textContent = INBOX_PATH;
+      await listarCarpetas(INBOX_PATH);
+      await listarArchivos(INBOX_PATH);
+      console.log('Repo usado:', GITHUB_OWNER + '/' + GITHUB_REPO);
+    })();
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth < 900) {
+        qs('listaCarpetas').style.display = 'none'; qs('selectCarpetas').style.display = 'block';
+        qs('listaDocs').style.display = 'none'; qs('selectArchivos').style.display = 'block';
+      } else {
+        qs('listaCarpetas').style.display = 'block'; qs('selectCarpetas').style.display = 'none';
+        qs('listaDocs').style.display = 'block'; qs('selectArchivos').style.display = 'none';
+      }
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
